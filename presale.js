@@ -21,10 +21,10 @@ const WEB3_CONFIG = {
     rpcUrl: "https://bsc-dataseed.binance.org/",
     blockExplorer: "https://bscscan.com",
     abi: [
-        "function buyTokens() public payable",
-        "function buyTokensUSDT(uint256 amount) public",
-        "function tokenPrice() public view returns (uint256)",
-        "function tokensSold() public view returns (uint256)"
+        "function buyWithBNB(address referrer) public payable",
+        "function buyWithUSDT(uint256 amount, address referrer) public",
+        "function getCurrentPrice() public view returns (uint256)",
+        "function tokensSoldInCurrentStage() public view returns (uint256)"
     ],
     erc20Abi: [
         "function approve(address spender, uint256 amount) public returns (bool)",
@@ -35,6 +35,15 @@ const WEB3_CONFIG = {
 
 let userAddress = null;
 let currentCurrency = 'BNB'; // 'BNB' or 'USDT'
+let currentReferrer = null;
+
+// Parse URL for Referral (?ref=0x...)
+const urlParams = new URLSearchParams(window.location.search);
+const refParam = urlParams.get('ref');
+if (refParam && refParam.startsWith('0x')) {
+    currentReferrer = refParam;
+    console.log("Referrer set to:", currentReferrer);
+}
 
 // DOM Elements
 const presaleOverlay = document.getElementById('presaleOverlay');
@@ -239,6 +248,21 @@ function onWalletConnected(type) {
 
     buyBtn.disabled = false;
     updateCurrencyUI(); // Check allowance state if USDT
+
+    // Show Referral Link
+    const refLink = `${window.location.origin}${window.location.pathname}?ref=${userAddress}`;
+    const refContainer = document.getElementById('referralContainer');
+    if (refContainer) {
+        refContainer.style.display = 'block';
+        document.getElementById('myRefLink').value = refLink;
+    }
+}
+
+function copyReferral() {
+    const copyText = document.getElementById("myRefLink");
+    copyText.select();
+    navigator.clipboard.writeText(copyText.value);
+    alert("Referral Link Copied: " + copyText.value);
 }
 
 // USDT Helper: Check Allowance
@@ -311,12 +335,17 @@ async function handleBuy() {
         const contract = new ethers.Contract(WEB3_CONFIG.contractAddress, WEB3_CONFIG.abi, signer);
         let tx;
 
+        // Use the referrer from global state, or zero address
+        const referrer = currentReferrer || "0x0000000000000000000000000000000000000000";
+
         if (currentCurrency === 'BNB') {
             const value = ethers.utils.parseEther(amount.toString());
-            tx = await contract.buyTokens({ value: value });
+            // Call buyWithBNB(referrer)
+            tx = await contract.buyWithBNB(referrer, { value: value });
         } else {
-            const value = ethers.utils.parseUnits(amount.toString(), 18); // USDT usually 18 decimals on BSC? (Check: BSC-USDT is 18)
-            tx = await contract.buyTokensUSDT(value);
+            const value = ethers.utils.parseUnits(amount.toString(), 18);
+            // Call buyWithUSDT(amount, referrer)
+            tx = await contract.buyWithUSDT(value, referrer);
         }
 
         const receipt = await tx.wait();
