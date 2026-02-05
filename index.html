@@ -734,6 +734,45 @@
             .shape-2 {
                 right: -100px;
             }
+
+            /* Responsive Fixes */
+            .table-wrap {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            .section-head {
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+            }
+
+            .section-head .badge {
+                margin-top: 8px;
+            }
+
+            .footgrid {
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+                gap: 24px;
+            }
+
+            .smalllinks {
+                justify-content: center;
+            }
+
+            .ref-stages {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 10px;
+                justify-content: center;
+            }
+
+            .ref-card {
+                flex: 1 1 40%;
+                /* 2 per row */
+            }
         }
 
         /* Smooth scroll */
@@ -990,76 +1029,69 @@
                     </div>
                 </div>
 
-                <div class="two">
-                    <div class="card">
-                        <h3 style="margin:0 0 10px; font-family:'Space Grotesk', Inter, sans-serif;">Utility</h3>
-                        <div class="muted" style="font-size:13px">
-                            <b style="color:var(--text)">Staking Access</b><br />
-                            Only staked tokens participate in revenue distribution.<br /><br />
+                <!-- Utilities -->
+                <div class="card" style="margin-bottom: 30px;">
+                    <h3 style="margin:0 0 10px; font-family:'Space Grotesk', Inter, sans-serif;">Utility</h3>
+                    <div class="muted" style="font-size:13px">
+                        <b style="color:var(--text)">Staking Access</b><br />
+                        Only staked tokens participate in revenue distribution.<br /><br />
 
-                            <b style="color:var(--text)">Buyback & Burn</b><br />
-                            A portion of protocol revenue is used to buy back NEURALY tokens and permanently remove them
-                            from circulation.<br /><br />
+                        <b style="color:var(--text)">Buyback & Burn</b><br />
+                        A portion of protocol revenue is used to buy back NEURALY tokens and permanently remove them
+                        from circulation.<br /><br />
 
-                            <b style="color:var(--text)">Governance (Phase 2)</b><br />
-                            Token holders may vote on strategy risk parameters and protocol expansion decisions.
-                        </div>
+                        <b style="color:var(--text)">Governance (Phase 2)</b><br />
+                        Token holders may vote on strategy risk parameters and protocol expansion decisions.
                     </div>
-                    <section id="tokenomics">
-                        <div class="container">
-                            <div class="section-head centered">
-                                <h2>Tokenomics</h2>
-                                <span class="badge">10,000,000,000 Supply</span>
-                            </div>
+                </div>
 
-                            <!-- Single Column Layout for Table -->
-                            <div style="max-width: 800px; margin: 0 auto;">
-                                <div class="card reveal">
-                                    <table>
-                                        <thead>
-                                            <tr>
-                                                <th>Allocation</th>
-                                                <th>%</th>
-                                                <th>Tokens</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr>
-                                                <td><strong>Presale</strong></td>
-                                                <td>35%</td>
-                                                <td>3,500,000,000</td>
-                                            </tr>
-                                            <tr>
-                                                <td><strong>Liquidity (Locked)</strong></td>
-                                                <td>20%</td>
-                                                <td>2,000,000,000</td>
-                                            </tr>
-                                            <tr>
-                                                <td><strong>Staking Rewards</strong></td>
-                                                <td>20%</td>
-                                                <td>2,000,000,000</td>
-                                            </tr>
-                                            <tr>
-                                                <td><strong>Team (Vested)</strong></td>
-                                                <td>15%</td>
-                                                <td>1,500,000,000</td>
-                                            </tr>
-                                            <tr>
-                                                <td><strong>Marketing/Dev</strong></td>
-                                                <td>10%</td>
-                                                <td>1,000,000,000</td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
+                <!-- Tokenomics Table Section -->
+                <div class="section-head centered" style="margin-top: 40px;">
+                    <h2>Tokenomics</h2>
+                    <span class="badge">10,000,000,000 Supply</span>
+                </div>
 
-                        <!-- Abstract Background Element Removed -->
-                    </section>
-
-
-                    <!-- Abstract Background Element Removed -->
+                <div style="max-width: 800px; margin: 0 auto;">
+                    <div class="card reveal">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Allocation</th>
+                                    <th>%</th>
+                                    <th>Tokens</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>Presale</strong></td>
+                                    <td>35%</td>
+                                    <td>3,500,000,000</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Liquidity (Locked)</strong></td>
+                                    <td>20%</td>
+                                    <td>2,000,000,000</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Staking Rewards</strong></td>
+                                    <td>20%</td>
+                                    <td>2,000,000,000</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Team (Vested)</strong></td>
+                                    <td>15%</td>
+                                    <td>1,500,000,000</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Marketing/Dev</strong></td>
+                                    <td>10%</td>
+                                    <td>1,000,000,000</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
         </section>
 
         <section id="roadmap">
@@ -1329,9 +1361,15 @@
     <!-- Presale Modal Overlay -->
     <div class="presale-overlay" id="presaleOverlay">
         <div class="presale-modal">
-            <div class="modal-header">
-                <h2>Presale Access</h2>
-                <button class="close-btn" id="closeModal">&times;</button>
+            <div class="modal-header"
+                style="justify-content: center; border-bottom: none; margin-bottom: 12px; position: relative;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <button id="connectWalletBtn" class="btn btn-ghost"
+                        style="padding:8px 16px; font-size:13px; border-color:rgba(155,92,255,0.3);">Connect
+                        Wallet</button>
+                </div>
+                <!-- Absolute Position Close Button to keep it top right -->
+                <button class="close-btn" id="closeModal" style="position: absolute; right: 0;">&times;</button>
             </div>
 
             <div class="presale-stats">
@@ -1378,9 +1416,8 @@
                     <span>NEURALY</span>
                 </div>
             </div>
+            <button id="buyBtn" class="action-btn" disabled>Connect Wallet to Buy</button>
         </div>
-
-        <button id="buyBtn" class="action-btn" disabled>Connect Wallet to Buy</button>
 
         <!-- REFERRAL LINK DISPLAY -->
         <div id="referralContainer"
@@ -1396,10 +1433,7 @@
                 stage.</p>
         </div>
 
-        <div class="wallet-status">
-            <button id="connectWalletBtn" class="btn btn-ghost"
-                style="width:100%; border:1px solid var(--line);">Connect Wallet</button>
-        </div>
+
     </div>
     </div>
 
@@ -1425,8 +1459,12 @@
     </div>
 
     <!-- existing script -->
-    <script src="fluid.js?v=3"></script>
-    <script src="presale.js?v=2"></script>
+    <!-- Ethers.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"
+        integrity="sha512-FDcVY+g7vc55I8ZY0C0n8n6eB3y3o5pbhISy5hYre5q7j5tLC9h0n83gP13dKOi9frLGLDAlPpD2n1b75qZ1ew=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="fluid.js"></script>
+    <script src="presale.js"></script>
     <script src="scroll-reveal.js"></script>
 
     <!-- Particles Effect -->

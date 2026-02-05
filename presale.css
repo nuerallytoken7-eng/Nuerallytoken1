@@ -1,9 +1,15 @@
-/* Presale Modal Styles - Premium Glassmorphism */
+/* Presale Modal Styles - Premium Responsive Glassmorphism */
 :root {
-    /* Inherit global vars from index.html where possible, but define specific modal vars */
     --modal-overlay: rgba(5, 5, 10, 0.85);
+    --modal-bg: rgba(18, 18, 34, 0.85);
+    /* Slightly more opaque for readability */
+    --modal-border: rgba(155, 92, 255, 0.2);
+    --modal-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
+    --purple: #9B5CFF;
+    --purple-dark: #6F4CFF;
 }
 
+/* OVERLAY: Centered Flex Container */
 .presale-overlay {
     position: fixed;
     inset: 0;
@@ -13,11 +19,14 @@
     z-index: 9999;
     display: flex;
     align-items: center;
+    /* Center Vertically */
     justify-content: center;
+    /* Center Horizontally */
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    padding: 20px;
+    padding: 16px;
+    /* Safe padding from screen edges */
 }
 
 .presale-overlay.active {
@@ -25,33 +34,39 @@
     pointer-events: auto;
 }
 
+/* MODAL: Responsive Box */
 .presale-modal {
-    /* Glass Effect */
-    background: rgba(18, 18, 34, 0.65);
-    border: 1px solid rgba(155, 92, 255, 0.2);
-    box-shadow:
-        0 20px 50px rgba(0, 0, 0, 0.7),
-        inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+    background: var(--modal-bg);
+    border: 1px solid var(--modal-border);
+    box-shadow: var(--modal-shadow), inset 0 0 0 1px rgba(255, 255, 255, 0.05);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
 
     border-radius: 24px;
-    padding: 32px;
-    width: 100%;
-    max-width: 460px;
-    position: relative;
-    transform: scale(0.95) translateY(10px);
-    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    padding: 40px;
+    /* Increased padding */
 
-    /* Ensure scroll on small screens if needed */
+    /* Layout */
+    width: 100%;
+    max-width: 600px;
+    /* Increased width */
     max-height: 90vh;
+    /* Prevent overflowing screen height */
     overflow-y: auto;
+    /* Scroll info if height is small */
+
+    /* Animation */
+    transform: scale(0.95);
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    position: relative;
+    /* ensure proper stacking */
 }
 
 .presale-overlay.active .presale-modal {
-    transform: scale(1) translateY(0);
+    transform: scale(1);
 }
 
+/* HEADER */
 .modal-header {
     display: flex;
     justify-content: space-between;
@@ -63,20 +78,20 @@
 
 .modal-header h2 {
     font-family: "Space Grotesk", sans-serif;
-    font-size: 22px;
+    font-size: 20px;
     margin: 0;
     color: #fff;
     text-shadow: 0 0 20px rgba(155, 92, 255, 0.4);
 }
 
 .close-btn {
-    background: transparent;
+    background: rgba(255, 255, 255, 0.05);
     border: none;
     color: var(--muted);
-    font-size: 28px;
+    font-size: 24px;
     cursor: pointer;
-    width: 36px;
-    height: 36px;
+    width: 32px;
+    height: 32px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -85,11 +100,11 @@
 }
 
 .close-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.15);
     color: #fff;
-    transform: rotate(90deg);
 }
 
+/* CONTENT: Stats */
 .presale-stats {
     margin-bottom: 24px;
     padding: 16px;
@@ -134,7 +149,7 @@
     letter-spacing: 0.5px;
 }
 
-/* Inputs */
+/* CONTENT: Inputs */
 .input-group {
     background: rgba(0, 0, 0, 0.3);
     border: 1px solid rgba(255, 255, 255, 0.05);
@@ -170,7 +185,8 @@
     background: transparent;
     border: none;
     color: #fff;
-    font-size: 24px;
+    font-size: 20px;
+    /* Optimal size */
     font-family: "Space Grotesk", sans-serif;
     width: 100%;
     font-weight: 600;
@@ -181,9 +197,10 @@
     color: rgba(255, 255, 255, 0.2);
 }
 
+/* Coin Selector */
 .currency-toggle {
     display: flex;
-    gap: 8px;
+    gap: 6px;
     background: rgba(255, 255, 255, 0.05);
     padding: 4px;
     border-radius: 99px;
@@ -217,11 +234,10 @@
 }
 
 .token-icon {
-    width: 22px;
-    height: 22px;
+    width: 20px;
+    height: 20px;
     border-radius: 50%;
     background: #ccc;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
 }
 
 .arrow-divider {
@@ -244,10 +260,15 @@
     }
 }
 
-/* Action Button */
+/* ACTION BUTTON */
 .action-btn {
-    width: 100%;
-    padding: 18px;
+    width: 90%;
+    /* Reduced width */
+    display: block;
+    margin: 12px auto 0;
+    /* Center align */
+    padding: 14px;
+    /* Reduced padding */
     border-radius: 14px;
     background: linear-gradient(135deg, #9B5CFF, #6F4CFF);
     border: 1px solid rgba(255, 255, 255, 0.2);
@@ -256,19 +277,16 @@
     font-weight: 600;
     font-size: 16px;
     cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.25, 1, 0.5, 1);
+    transition: all 0.2s;
     box-shadow: 0 10px 30px rgba(155, 92, 255, 0.3);
-    margin-top: 12px;
     text-transform: uppercase;
     letter-spacing: 1px;
-    position: relative;
-    overflow: hidden;
 }
 
 .action-btn:hover {
     transform: translateY(-2px);
     box-shadow: 0 15px 40px rgba(155, 92, 255, 0.5);
-    border-color: rgba(255, 255, 255, 0.5);
+    filter: brightness(1.1);
 }
 
 .action-btn:active {
@@ -284,14 +302,15 @@
     transform: none;
 }
 
-/* Wallet Status */
+/* WALLET SELECTION */
 .wallet-status {
-    margin-top: 20px;
-    padding-top: 16px;
+    margin-top: 14px;
+    /* Reduced space */
+    padding-top: 14px;
+    /* Reduced space */
     border-top: 1px dashed rgba(255, 255, 255, 0.1);
 }
 
-/* Wallet Selection Modal Grid */
 .wallet-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -302,11 +321,11 @@
     background: rgba(255, 255, 255, 0.03);
     border: 1px solid rgba(255, 255, 255, 0.05);
     border-radius: 16px;
-    padding: 24px;
+    padding: 20px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 14px;
+    gap: 12px;
     cursor: pointer;
     transition: all 0.2s;
 }
@@ -318,41 +337,52 @@
 }
 
 .wallet-option .wallet-icon {
-    width: 60px;
-    height: 60px;
-    border-radius: 14px;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    width: 50px;
+    height: 50px;
+    border-radius: 12px;
 }
 
-.wallet-option span {
-    font-size: 14px;
-    color: #fff;
-    font-weight: 500;
+/* =========================================
+   RESPONSIVE OVERRIDES
+   ========================================= */
+
+/* Tablets & Small Computers (Narrower modal) */
+@media (max-width: 768px) {
+    .presale-modal {
+        max-width: 90%;
+        /* Use available width with margins */
+        padding: 24px;
+    }
 }
 
-/* Responsive Modal */
+/* Mobile Devices (Stack Layout) */
 @media (max-width: 480px) {
     .presale-modal {
-        padding: 24px;
-        border-radius: 20px 20px 0 0;
-        max-width: 100%;
-        position: absolute;
-        bottom: 0;
-        top: auto;
-        transform: translateY(100%);
-        margin: 0;
+        padding: 20px;
+        border-radius: 20px;
     }
 
-    .presale-overlay.active .presale-modal {
-        transform: translateY(0);
+    /* Stack Inputs vertically on mobile */
+    .input-group {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+        padding: 12px;
     }
 
-    .presale-overlay {
-        padding: 0;
-        align-items: flex-end;
+    .currency-toggle,
+    .token-selector {
+        width: 100%;
+        justify-content: center;
     }
 
-    .close-btn {
-        background: rgba(255, 255, 255, 0.05);
+    /* Make token icons bigger/easier to see in vertical layout */
+    .token-selector {
+        padding: 8px;
+    }
+
+    .wallet-grid {
+        grid-template-columns: 1fr;
+        /* Stack wallet options */
     }
 }

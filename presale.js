@@ -14,17 +14,21 @@ const PRESALE_CONFIG = {
 
 // Web3 Config
 const WEB3_CONFIG = {
-    contractAddress: "0x0000000000000000000000000000000000000000", // Presale Contract
-    usdtAddress: "0x55d398326f99059fF775485246999027B3197955",      // USDT (BEP-20) Mainnet Address
-    chainId: 56, // BNB Smart Chain
-    chainHex: "0x38",
-    rpcUrl: "https://bsc-dataseed.binance.org/",
-    blockExplorer: "https://bscscan.com",
+    contractAddress: "0x9fe46736679d2d9a65f0992f2272de9f3c7fa6e0", // Local Presale
+    usdtAddress: "0xe7f1725e7734ce288f8367e1bb143e90bb3f0512",      // Mock USDT
+    chainId: 1337, // Hardhat Localhost
+    chainHex: "0x539",
+    rpcUrl: "http://127.0.0.1:8545/",
+    blockExplorer: "http://localhost",
     abi: [
         "function buyWithBNB(address referrer) public payable",
         "function buyWithUSDT(uint256 amount, address referrer) public",
         "function getCurrentPrice() public view returns (uint256)",
-        "function tokensSoldInCurrentStage() public view returns (uint256)"
+        "function tokensSoldInCurrentStage() public view returns (uint256)",
+        "function currentStage() public view returns (uint256)",
+        "function totalRaisedBNB() public view returns (uint256)",
+        "function getReferralPercent() public view returns (uint256)",
+        "function STAGE_ALLOCATION() public view returns (uint256)"
     ],
     erc20Abi: [
         "function approve(address spender, uint256 amount) public returns (bool)",
@@ -53,102 +57,101 @@ const mainConnectBtn = document.getElementById('presaleLink');
 const closeModalBtn = document.getElementById('closeModal');
 const closeWalletModalBtn = document.getElementById('closeWalletModal');
 const buyBtn = document.getElementById('buyBtn');
-const paymentInput = document.getElementById('bnbAmount'); // Renamed from bnbInput
+const paymentInput = document.getElementById('paymentInput');
 const payLabel = document.getElementById('payLabel');
-const tokenOutput = document.getElementById('tokenAmount'); // Fixed ID
+const tokenOutput = document.getElementById('tokenOutput');
 const progressBar = document.getElementById('progressBar');
 const raisedDisplay = document.getElementById('raisedAmount');
-const exchangeRateDisplay = document.querySelector('.exchange-rate');
+// Note: exchangeRateDisplay logic might need updating if we fetch price dynamic, but staying simple for now
 
 // Initialize
 function initPresale() {
-    updateProgress();
+    // Note: We don't call updateProgress here immediately because we need data first
+    fetchRawData();
 
     // Main Presale Modal Triggers
-    mainConnectBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        openModal(presaleOverlay);
-    });
+    if (mainConnectBtn) {
+        mainConnectBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            openModal(presaleOverlay);
+        });
+    }
 
-    closeModalBtn.addEventListener('click', () => closeModal(presaleOverlay));
+    if (closeModalBtn) closeModalBtn.addEventListener('click', () => closeModal(presaleOverlay));
 
     // Close on click outside
-    presaleOverlay.addEventListener('click', (e) => {
-        if (e.target === presaleOverlay) closeModal(presaleOverlay);
-    });
+    if (presaleOverlay) {
+        presaleOverlay.addEventListener('click', (e) => {
+            if (e.target === presaleOverlay) closeModal(presaleOverlay);
+        });
+    }
 
     // Wallet Selection Triggers
-    connectBtn.addEventListener('click', () => openModal(walletSelectionOverlay));
-    closeWalletModalBtn.addEventListener('click', () => closeModal(walletSelectionOverlay));
-    walletSelectionOverlay.addEventListener('click', (e) => {
-        if (e.target === walletSelectionOverlay) closeModal(walletSelectionOverlay);
-    });
+    if (connectBtn) connectBtn.addEventListener('click', () => openModal(walletSelectionOverlay));
+    if (closeWalletModalBtn) closeWalletModalBtn.addEventListener('click', () => closeModal(walletSelectionOverlay));
+    if (walletSelectionOverlay) {
+        walletSelectionOverlay.addEventListener('click', (e) => {
+            if (e.target === walletSelectionOverlay) closeModal(walletSelectionOverlay);
+        });
+    }
 
     // Input calculation
-    paymentInput.addEventListener('input', calculateTokens);
+    if (paymentInput) paymentInput.addEventListener('input', calculateTokens);
 
     // Initial button state
-    buyBtn.addEventListener('click', handleBuy);
+    if (buyBtn) buyBtn.addEventListener('click', handleBuy);
 
     // Set initial Label
     updateCurrencyUI();
+
+    // Auto-refresh data every 10s
+    setInterval(fetchRawData, 10000);
 }
 
-function openModal(modal) {
-    modal.classList.add('active');
-    document.body.style.overflow = 'hidden';
-}
+async function fetchRawData() {
+    try {
+        const provider = new ethers.providers.JsonRpcProvider(WEB3_CONFIG.rpcUrl);
+        const contract = new ethers.Contract(WEB3_CONFIG.contractAddress, WEB3_CONFIG.abi, provider);
 
-function closeModal(modal) {
-    modal.classList.remove('active');
-    document.body.style.overflow = '';
-}
+        // Fetch Data in bulk
+        const [stageIndex, tokensSold, allocation] = await Promise.all([
+            contract.currentStage(),
+            contract.tokensSoldInCurrentStage(),
+            contract.STAGE_ALLOCATION()
+        ]);
 
+        // Helper to formatting
+        const soldFormatted = parseFloat(ethers.utils.formatEther(tokensSold));
+        const allocationFormatted = parseFloat(ethers.utils.formatEther(allocation));
 
-// Global scope for HTML onclick
-window.toggleCurrency = function (currency) {
-    currentCurrency = currency;
+        PRESALE_CONFIG.raised = soldFormatted;
+        PRESALE_CONFIG.hardcap = allocationFormatted; // Reusing hardcap var for Stage Allocation
 
-    // Update active class
-    const selectors = document.querySelectorAll('#currencyToggle .token-selector');
-    selectors.forEach(el => {
-        el.classList.remove('active');
-        if (el.getAttribute('data-currency') === currency) {
-            el.classList.add('active');
-        }
-    });
+        // Update UI
+        const currentStageNum = parseInt(stageIndex) + 1;
+        const headerTitle = document.querySelector('.modal-header h2');
+        if (headerTitle) headerTitle.textContent = `Presale Access (Stage ${currentStageNum})`;
 
-    updateCurrencyUI();
-    calculateTokens();
-}
+        updateProgress();
 
-function updateCurrencyUI() {
-    // Update Label
-    payLabel.textContent = `You Pay (${currentCurrency})`;
-
-    // Update Rate Text
-    const rate = PRESALE_CONFIG.rates[currentCurrency].toLocaleString();
-    exchangeRateDisplay.textContent = `1 ${currentCurrency} = ${rate} NEURALY`;
-
-    // Update Button Text logic
-    if (currentCurrency === 'USDT' && userAddress) {
-        checkUSDTAllowance();
-    } else {
-        buyBtn.textContent = userAddress ? "Buy NEURALY" : "Connect Wallet to Buy";
+    } catch (e) {
+        console.error("Error fetching data:", e);
     }
 }
 
-function calculateTokens() {
-    const amount = parseFloat(paymentInput.value) || 0;
-    const rate = PRESALE_CONFIG.rates[currentCurrency];
-    const tokens = amount * rate;
-    tokenOutput.value = tokens.toLocaleString();
-}
-
 function updateProgress() {
-    const percentage = (PRESALE_CONFIG.raised / PRESALE_CONFIG.hardcap) * 100;
-    progressBar.style.width = `${percentage}%`;
-    raisedDisplay.textContent = `${PRESALE_CONFIG.raised} / ${PRESALE_CONFIG.hardcap} BNB`;
+    const sold = PRESALE_CONFIG.raised;
+    const target = PRESALE_CONFIG.hardcap;
+
+    const percentage = (sold / target) * 100;
+
+    if (progressBar) progressBar.style.width = `${percentage}%`;
+
+    // Format large numbers with commas
+    const soldStr = sold.toLocaleString('en-US', { maximumFractionDigits: 0 });
+    const targetStr = target.toLocaleString('en-US', { maximumFractionDigits: 0 });
+
+    if (raisedDisplay) raisedDisplay.textContent = `${soldStr} / ${targetStr} NEURALY`;
 }
 
 // Web3 Config
@@ -340,12 +343,17 @@ async function handleBuy() {
 
         if (currentCurrency === 'BNB') {
             const value = ethers.utils.parseEther(amount.toString());
-            // Call buyWithBNB(referrer)
-            tx = await contract.buyWithBNB(referrer, { value: value });
+            // Call buyWithBNB(referrer) with manual gas limit
+            tx = await contract.buyWithBNB(referrer, {
+                value: value,
+                gasLimit: 500000
+            });
         } else {
             const value = ethers.utils.parseUnits(amount.toString(), 18);
-            // Call buyWithUSDT(amount, referrer)
-            tx = await contract.buyWithUSDT(value, referrer);
+            // Call buyWithUSDT(amount, referrer) with manual gas limit
+            tx = await contract.buyWithUSDT(value, referrer, {
+                gasLimit: 500000
+            });
         }
 
         const receipt = await tx.wait();
@@ -368,7 +376,9 @@ async function handleBuy() {
         if (error.code === 4001) {
             alert('Transaction Rejected by User');
         } else {
-            alert('Transaction Failed: ' + (error.reason || error.message));
+            // Show more detail for debugging
+            const reason = error.reason || error.data?.message || error.message;
+            alert('Transaction Failed: ' + reason);
         }
 
     } finally {
@@ -378,6 +388,82 @@ async function handleBuy() {
         }
     }
 }
+
+
+// -------------------------------------------------------------
+// HELPER FUNCTIONS (Previously Missing)
+// -------------------------------------------------------------
+
+function openModal(modal) {
+    if (modal) {
+        modal.classList.add('active');
+        document.body.style.overflow = 'hidden'; // Prevent bg scrolling
+    }
+}
+
+function closeModal(modal) {
+    if (modal) {
+        modal.classList.remove('active');
+        document.body.style.overflow = '';
+    }
+}
+
+window.toggleCurrency = function (currency) {
+    currentCurrency = currency;
+
+    // Update active class on selectors
+    document.querySelectorAll('.token-selector').forEach(el => {
+        if (el.dataset.currency === currency) {
+            el.classList.add('active');
+        } else {
+            el.classList.remove('active');
+        }
+    });
+
+    // Update Input Label
+    if (payLabel) {
+        payLabel.textContent = `You Pay (${currency})`;
+    }
+
+    // Reset Inputs
+    if (paymentInput) paymentInput.value = '';
+    if (tokenOutput) tokenOutput.value = '';
+
+    // Trigger UI Update for Button State
+    updateCurrencyUI();
+};
+
+function updateCurrencyUI() {
+    if (currentCurrency === 'USDT') {
+        checkUSDTAllowance();
+    } else {
+        // BNB Logic
+        if (buyBtn) {
+            buyBtn.textContent = 'Buy NEURALY';
+            // Only disable if wallet not connected? 
+            // Actually handleBuy checks wallet. 
+            // Just ensure it doesn't say "Approve"
+        }
+    }
+}
+
+function calculateTokens() {
+    if (!paymentInput || !tokenOutput) return;
+
+    const amount = parseFloat(paymentInput.value);
+    if (isNaN(amount)) {
+        tokenOutput.value = '';
+        return;
+    }
+
+    const rate = PRESALE_CONFIG.rates[currentCurrency];
+    const tokens = amount * rate;
+
+    // Format with commas
+    tokenOutput.value = tokens.toLocaleString('en-US', { maximumFractionDigits: 0 });
+}
+
+// -------------------------------------------------------------
 
 // Auto-init if script loaded
 document.addEventListener('DOMContentLoaded', initPresale);
