@@ -75,6 +75,20 @@ function updateProgress() {
     raisedDisplay.textContent = `${PRESALE_CONFIG.raised} / ${PRESALE_CONFIG.hardcap} BNB`;
 }
 
+// Web3 Config
+const WEB3_CONFIG = {
+    contractAddress: "0x0000000000000000000000000000000000000000", // Placeholder: REPLACE WITH REAL CONTRACT
+    chainId: 56, // BNB Smart Chain Mainnet (Use 97 for Testnet)
+    chainHex: "0x38", // 56 in hex
+    rpcUrl: "https://bsc-dataseed.binance.org/",
+    blockExplorer: "https://bscscan.com",
+    abi: [
+        "function buyTokens() public payable",
+        "function tokenPrice() public view returns (uint256)",
+        "function tokensSold() public view returns (uint256)"
+    ]
+};
+
 // Global scope for HTML onclick
 window.selectWallet = async function (type) {
     closeModal(walletSelectionOverlay);
@@ -92,7 +106,6 @@ window.selectWallet = async function (type) {
                 return;
             }
         } else if (type === 'trust') {
-            // Priority: Trust Wallet object -> Ethereum object (if Trust overrides it)
             if (window.trustwallet) {
                 provider = window.trustwallet;
             } else if (typeof window.ethereum !== 'undefined' && window.ethereum.isTrust) {
@@ -106,22 +119,70 @@ window.selectWallet = async function (type) {
         }
 
         if (provider) {
+            // Request Accounts
             const accounts = await provider.request({ method: 'eth_requestAccounts' });
             userAddress = accounts[0];
+
+            // Check Network
+            await checkAndSwitchNetwork(provider);
+
             onWalletConnected(type);
         }
     } catch (error) {
         console.error("Wallet connection error:", error);
-        alert('Connection Failed or Cancelled');
+        alert('Connection Failed: ' + error.message);
     }
 };
 
+async function checkAndSwitchNetwork(provider) {
+    try {
+        const chainId = await provider.request({ method: 'eth_chainId' });
+        if (parseInt(chainId, 16) !== WEB3_CONFIG.chainId) {
+            try {
+                await provider.request({
+                    method: 'wallet_switchEthereumChain',
+                    params: [{ chainId: WEB3_CONFIG.chainHex }],
+                });
+            } catch (switchError) {
+                // This error code indicates that the chain has not been added to MetaMask.
+                if (switchError.code === 4902) {
+                    await provider.request({
+                        method: 'wallet_addEthereumChain',
+                        params: [
+                            {
+                                chainId: WEB3_CONFIG.chainHex,
+                                chainName: 'BNB Smart Chain',
+                                nativeCurrency: {
+                                    name: 'BNB',
+                                    symbol: 'BNB',
+                                    decimals: 18,
+                                },
+                                rpcUrls: [WEB3_CONFIG.rpcUrl],
+                                blockExplorerUrls: [WEB3_CONFIG.blockExplorer],
+                            },
+                        ],
+                    });
+                } else {
+                    throw switchError;
+                }
+            }
+        }
+    } catch (error) {
+        console.error("Network switch error:", error);
+        alert("Please switch your wallet to BNB Smart Chain to participate.");
+    }
+}
+
 function onWalletConnected(type) {
     const shortAddr = `${userAddress.substring(0, 6)}...${userAddress.substring(38)}`;
-    connectBtn.textContent = `${shortAddr} (${type === 'trust' ? 'Trust' : 'MetaMask'})`;
+    connectBtn.textContent = `${shortAddr} (${type === 'trust' ? 'Trust' : 'Web3'})`;
+    connectBtn.classList.add('connected');
+
+    // Style update for connection
     connectBtn.style.background = 'rgba(67, 255, 168, 0.1)';
     connectBtn.style.borderColor = 'var(--ok)';
     connectBtn.style.color = 'var(--ok)';
+
     buyBtn.disabled = false;
     buyBtn.textContent = "Buy NEURALY";
 }
@@ -132,34 +193,71 @@ async function handleBuy() {
         return;
     }
 
-    const amount = parseFloat(bnbInput.value);
-    if (!amount || amount < PRESALE_CONFIG.minBuy || amount > PRESALE_CONFIG.maxBuy) {
+    const amount = bnbInput.value;
+    const amountFloat = parseFloat(amount);
+
+    if (!amount || amountFloat < PRESALE_CONFIG.minBuy || amountFloat > PRESALE_CONFIG.maxBuy) {
         alert(`Please enter amount between ${PRESALE_CONFIG.minBuy} and ${PRESALE_CONFIG.maxBuy} BNB`);
         return;
     }
 
-    buyBtn.textContent = 'Processing...';
-    buyBtn.disabled = true;
+    // WEB3 TRANSACTION LOGIC
+    try {
+        buyBtn.textContent = 'Processing...';
+        buyBtn.disabled = true;
 
-    // Simulate transaction delay
-    setTimeout(() => {
-        alert('Presale is not live on mainnet yet! This is a UI demo.');
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        const signer = provider.getSigner();
+
+        // If contract address is still placeholder, warn user logic won't work on chain
+        if (WEB3_CONFIG.contractAddress === "0x0000000000000000000000000000000000000000") {
+            console.warn("Using Placeholder Contract Address. Transaction will fail if not updated.");
+
+            // SIMULATION FOR DEMO PURPOSES (Remove this block when live)
+            await new Promise(r => setTimeout(r, 2000)); // Fake delay
+            alert("This is a DEMO. In production, this would open your wallet to sign a transaction.");
+            PRESALE_CONFIG.raised += amountFloat;
+            updateProgress();
+            buyBtn.textContent = 'Buy NEURALY';
+            buyBtn.disabled = false;
+            return;
+        }
+
+        const contract = new ethers.Contract(WEB3_CONFIG.contractAddress, WEB3_CONFIG.abi, signer);
+
+        // Calculate value in Wei
+        const value = ethers.utils.parseEther(amount.toString());
+
+        // Send Transaction
+        const tx = await contract.buyTokens({ value: value });
+
+        buyBtn.textContent = 'Confirming...';
+
+        // Wait for Receipt
+        const receipt = await tx.wait();
+
+        if (receipt.status === 1) {
+            alert('Transaction Successful! Welcome to NEURALY.');
+            // Update local UI (In real app, listen to events)
+            PRESALE_CONFIG.raised += amountFloat;
+            updateProgress();
+        } else {
+            alert('Transaction Failed!');
+        }
+
+    } catch (error) {
+        console.error("Buy error:", error);
+
+        if (error.code === 4001) {
+            alert('Transaction Rejected by User');
+        } else {
+            alert('Transaction Failed: ' + (error.reason || error.message));
+        }
+
+    } finally {
         buyBtn.textContent = 'Buy NEURALY';
         buyBtn.disabled = false;
-
-        // Mock update
-        PRESALE_CONFIG.raised += amount;
-        updateProgress();
-    }, 2000);
-
-    // TODO: Integrate actual contract call here
-    /*
-    const provider = new ethers.providers.Web3Provider(window.ethereum);
-    const signer = provider.getSigner();
-    const contract = new ethers.Contract(PRESALE_ADDRESS, PRESALE_ABI, signer);
-    const tx = await contract.buyTokens({ value: ethers.utils.parseEther(amount.toString()) });
-    await tx.wait();
-    */
+    }
 }
 
 // Auto-init if script loaded
