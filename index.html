@@ -1228,39 +1228,45 @@
             </div>
 
             <!-- Input Area -->
-            <div>
-                <div class="input-group">
-                    <div class="input-wrapper">
-                        <label class="input-label">You Pay</label>
-                        <input type="number" id="bnbAmount" class="token-input" placeholder="0.0" step="0.1">
-                    </div>
-                    <div class="token-selector">
-                        <div class="token-icon" style="background:#F3BA2F"></div> <!-- BNB Color -->
+            <div class="input-group">
+                <div class="input-wrapper">
+                    <label class="input-label" id="payLabel">You Pay (BNB)</label>
+                    <input type="number" id="paymentInput" class="token-input" placeholder="0.0" step="0.1">
+                </div>
+                <!-- Currency Selector -->
+                <div class="currency-toggle" id="currencyToggle">
+                    <div class="token-selector active" data-currency="BNB" onclick="window.toggleCurrency('BNB')">
+                        <div class="token-icon" style="background:#F3BA2F"></div>
                         <span>BNB</span>
                     </div>
-                </div>
-
-                <div class="arrow-divider">↓</div>
-
-                <div class="input-group">
-                    <div class="input-wrapper">
-                        <label class="input-label">You Receive</label>
-                        <input type="text" id="tokenOutput" class="token-input" placeholder="0.0" readonly>
-                    </div>
-                    <div class="token-selector">
-                        <div class="token-icon"></div> <!-- NEURALY Color -->
-                        <span>NEURALY</span>
+                    <div class="token-selector" data-currency="USDT" onclick="window.toggleCurrency('USDT')">
+                        <div class="token-icon" style="background:#26A17B"></div>
+                        <span>USDT</span>
                     </div>
                 </div>
             </div>
 
-            <button id="buyBtn" class="action-btn" disabled>Connect Wallet to Buy</button>
+            <div class="arrow-divider">↓</div>
 
-            <div class="wallet-status">
-                <button id="connectWalletBtn" class="btn btn-ghost"
-                    style="width:100%; border:1px solid var(--line);">Connect Wallet</button>
+            <div class="input-group">
+                <div class="input-wrapper">
+                    <label class="input-label">You Receive</label>
+                    <input type="text" id="tokenOutput" class="token-input" placeholder="0.0" readonly>
+                </div>
+                <div class="token-selector">
+                    <div class="token-icon"></div> <!-- NEURALY Color -->
+                    <span>NEURALY</span>
+                </div>
             </div>
         </div>
+
+        <button id="buyBtn" class="action-btn" disabled>Connect Wallet to Buy</button>
+
+        <div class="wallet-status">
+            <button id="connectWalletBtn" class="btn btn-ghost"
+                style="width:100%; border:1px solid var(--line);">Connect Wallet</button>
+        </div>
+    </div>
     </div>
 
     <!-- Wallet Selection Modal -->

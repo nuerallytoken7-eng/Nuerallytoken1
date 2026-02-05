@@ -2,25 +2,54 @@
 const PRESALE_CONFIG = {
     hardcap: 500, // BNB
     raised: 154.5, // Mock initial value
-    rate: 20000000, // 1 BNB = 20,000,000 NEURALY
-    minBuy: 0.1,
-    maxBuy: 10
+    rates: {
+        BNB: 20000000,   // 1 BNB = 20,000,000 NEURALY
+        USDT: 50000      // 1 USDT = 50,000 NEURALY (Example Rate)
+    },
+    limits: {
+        BNB: { min: 0.1, max: 10 },
+        USDT: { min: 50, max: 5000 }
+    }
+};
+
+// Web3 Config
+const WEB3_CONFIG = {
+    contractAddress: "0x0000000000000000000000000000000000000000", // Presale Contract
+    usdtAddress: "0x55d398326f99059fF775485246999027B3197955",      // USDT (BEP-20) Mainnet Address
+    chainId: 56, // BNB Smart Chain
+    chainHex: "0x38",
+    rpcUrl: "https://bsc-dataseed.binance.org/",
+    blockExplorer: "https://bscscan.com",
+    abi: [
+        "function buyTokens() public payable",
+        "function buyTokensUSDT(uint256 amount) public",
+        "function tokenPrice() public view returns (uint256)",
+        "function tokensSold() public view returns (uint256)"
+    ],
+    erc20Abi: [
+        "function approve(address spender, uint256 amount) public returns (bool)",
+        "function allowance(address owner, address spender) public view returns (uint256)",
+        "function balanceOf(address account) public view returns (uint256)"
+    ]
 };
 
 let userAddress = null;
+let currentCurrency = 'BNB'; // 'BNB' or 'USDT'
 
 // DOM Elements
 const presaleOverlay = document.getElementById('presaleOverlay');
 const walletSelectionOverlay = document.getElementById('walletSelectionOverlay');
-const connectBtn = document.getElementById('connectWalletBtn'); // In Modal
-const mainConnectBtn = document.getElementById('presaleLink'); // Global CTA
+const connectBtn = document.getElementById('connectWalletBtn');
+const mainConnectBtn = document.getElementById('presaleLink');
 const closeModalBtn = document.getElementById('closeModal');
 const closeWalletModalBtn = document.getElementById('closeWalletModal');
 const buyBtn = document.getElementById('buyBtn');
-const bnbInput = document.getElementById('bnbAmount');
-const tokenOutput = document.getElementById('tokenAmount');
+const paymentInput = document.getElementById('bnbAmount'); // Renamed from bnbInput
+const payLabel = document.getElementById('payLabel');
+const tokenOutput = document.getElementById('tokenAmount'); // Fixed ID
 const progressBar = document.getElementById('progressBar');
 const raisedDisplay = document.getElementById('raisedAmount');
+const exchangeRateDisplay = document.querySelector('.exchange-rate');
 
 // Initialize
 function initPresale() {
@@ -47,10 +76,13 @@ function initPresale() {
     });
 
     // Input calculation
-    bnbInput.addEventListener('input', calculateTokens);
+    paymentInput.addEventListener('input', calculateTokens);
 
     // Initial button state
     buyBtn.addEventListener('click', handleBuy);
+
+    // Set initial Label
+    updateCurrencyUI();
 }
 
 function openModal(modal) {
@@ -63,9 +95,44 @@ function closeModal(modal) {
     document.body.style.overflow = '';
 }
 
+
+// Global scope for HTML onclick
+window.toggleCurrency = function (currency) {
+    currentCurrency = currency;
+
+    // Update active class
+    const selectors = document.querySelectorAll('#currencyToggle .token-selector');
+    selectors.forEach(el => {
+        el.classList.remove('active');
+        if (el.getAttribute('data-currency') === currency) {
+            el.classList.add('active');
+        }
+    });
+
+    updateCurrencyUI();
+    calculateTokens();
+}
+
+function updateCurrencyUI() {
+    // Update Label
+    payLabel.textContent = `You Pay (${currentCurrency})`;
+
+    // Update Rate Text
+    const rate = PRESALE_CONFIG.rates[currentCurrency].toLocaleString();
+    exchangeRateDisplay.textContent = `1 ${currentCurrency} = ${rate} NEURALY`;
+
+    // Update Button Text logic
+    if (currentCurrency === 'USDT' && userAddress) {
+        checkUSDTAllowance();
+    } else {
+        buyBtn.textContent = userAddress ? "Buy NEURALY" : "Connect Wallet to Buy";
+    }
+}
+
 function calculateTokens() {
-    const amount = parseFloat(bnbInput.value) || 0;
-    const tokens = amount * PRESALE_CONFIG.rate;
+    const amount = parseFloat(paymentInput.value) || 0;
+    const rate = PRESALE_CONFIG.rates[currentCurrency];
+    const tokens = amount * rate;
     tokenOutput.value = tokens.toLocaleString();
 }
 
@@ -76,19 +143,6 @@ function updateProgress() {
 }
 
 // Web3 Config
-const WEB3_CONFIG = {
-    contractAddress: "0x0000000000000000000000000000000000000000", // Placeholder: REPLACE WITH REAL CONTRACT
-    chainId: 56, // BNB Smart Chain Mainnet (Use 97 for Testnet)
-    chainHex: "0x38", // 56 in hex
-    rpcUrl: "https://bsc-dataseed.binance.org/",
-    blockExplorer: "https://bscscan.com",
-    abi: [
-        "function buyTokens() public payable",
-        "function tokenPrice() public view returns (uint256)",
-        "function tokensSold() public view returns (uint256)"
-    ]
-};
-
 // Global scope for HTML onclick
 window.selectWallet = async function (type) {
     closeModal(walletSelectionOverlay);
@@ -184,7 +238,17 @@ function onWalletConnected(type) {
     connectBtn.style.color = 'var(--ok)';
 
     buyBtn.disabled = false;
-    buyBtn.textContent = "Buy NEURALY";
+    updateCurrencyUI(); // Check allowance state if USDT
+}
+
+// USDT Helper: Check Allowance
+async function checkUSDTAllowance() {
+    if (!userAddress || currentCurrency !== 'USDT') return;
+
+    // Logic placeholder for UI update
+    // In real app, we query allowance
+    buyBtn.textContent = "Approve USDT";
+    // If allowance > 0, set to "Buy NEURALY"
 }
 
 async function handleBuy() {
@@ -193,30 +257,51 @@ async function handleBuy() {
         return;
     }
 
-    const amount = bnbInput.value;
+    const amount = paymentInput.value;
     const amountFloat = parseFloat(amount);
+    const limits = PRESALE_CONFIG.limits[currentCurrency];
 
-    if (!amount || amountFloat < PRESALE_CONFIG.minBuy || amountFloat > PRESALE_CONFIG.maxBuy) {
-        alert(`Please enter amount between ${PRESALE_CONFIG.minBuy} and ${PRESALE_CONFIG.maxBuy} BNB`);
+    if (!amount || amountFloat < limits.min || amountFloat > limits.max) {
+        alert(`Please enter amount between ${limits.min} and ${limits.max} ${currentCurrency}`);
         return;
     }
 
     // WEB3 TRANSACTION LOGIC
     try {
-        buyBtn.textContent = 'Processing...';
         buyBtn.disabled = true;
-
         const provider = new ethers.providers.Web3Provider(window.ethereum);
         const signer = provider.getSigner();
 
-        // If contract address is still placeholder, warn user logic won't work on chain
-        if (WEB3_CONFIG.contractAddress === "0x0000000000000000000000000000000000000000") {
-            console.warn("Using Placeholder Contract Address. Transaction will fail if not updated.");
+        // If USDT and button says Approve
+        if (currentCurrency === 'USDT' && buyBtn.textContent.includes("Approve")) {
+            buyBtn.textContent = 'Approving...';
 
-            // SIMULATION FOR DEMO PURPOSES (Remove this block when live)
-            await new Promise(r => setTimeout(r, 2000)); // Fake delay
-            alert("This is a DEMO. In production, this would open your wallet to sign a transaction.");
-            PRESALE_CONFIG.raised += amountFloat;
+            if (WEB3_CONFIG.contractAddress.includes("0x000")) {
+                await new Promise(r => setTimeout(r, 1500));
+                alert("DEMO: USDT Approved!");
+                buyBtn.textContent = "Buy NEURALY";
+                buyBtn.disabled = false;
+                return;
+            }
+
+            // Real Approval Logic
+            const usdtContract = new ethers.Contract(WEB3_CONFIG.usdtAddress, WEB3_CONFIG.erc20Abi, signer);
+            const tx = await usdtContract.approve(WEB3_CONFIG.contractAddress, ethers.constants.MaxUint256);
+            await tx.wait();
+
+            buyBtn.textContent = "Buy NEURALY";
+            buyBtn.disabled = false;
+            return;
+        }
+
+        // BUY LOGIC
+        buyBtn.textContent = 'Processing...';
+
+        // Demo Check
+        if (WEB3_CONFIG.contractAddress.includes("0x000")) {
+            await new Promise(r => setTimeout(r, 2000));
+            alert(`DEMO: Successfully bought with ${amount} ${currentCurrency}!`);
+            PRESALE_CONFIG.raised += (currentCurrency === 'BNB' ? amountFloat : 0); // Only track BNB for demo bar
             updateProgress();
             buyBtn.textContent = 'Buy NEURALY';
             buyBtn.disabled = false;
@@ -224,29 +309,32 @@ async function handleBuy() {
         }
 
         const contract = new ethers.Contract(WEB3_CONFIG.contractAddress, WEB3_CONFIG.abi, signer);
+        let tx;
 
-        // Calculate value in Wei
-        const value = ethers.utils.parseEther(amount.toString());
+        if (currentCurrency === 'BNB') {
+            const value = ethers.utils.parseEther(amount.toString());
+            tx = await contract.buyTokens({ value: value });
+        } else {
+            const value = ethers.utils.parseUnits(amount.toString(), 18); // USDT usually 18 decimals on BSC? (Check: BSC-USDT is 18)
+            tx = await contract.buyTokensUSDT(value);
+        }
 
-        // Send Transaction
-        const tx = await contract.buyTokens({ value: value });
-
-        buyBtn.textContent = 'Confirming...';
-
-        // Wait for Receipt
         const receipt = await tx.wait();
 
         if (receipt.status === 1) {
-            alert('Transaction Successful! Welcome to NEURALY.');
+            alert('Transaction Successful!');
             // Update local UI (In real app, listen to events)
-            PRESALE_CONFIG.raised += amountFloat;
+            // For demo, only BNB contributes to raised amount
+            if (currentCurrency === 'BNB') {
+                PRESALE_CONFIG.raised += amountFloat;
+            }
             updateProgress();
         } else {
             alert('Transaction Failed!');
         }
 
     } catch (error) {
-        console.error("Buy error:", error);
+        console.error("Transaction error:", error);
 
         if (error.code === 4001) {
             alert('Transaction Rejected by User');
@@ -255,8 +343,10 @@ async function handleBuy() {
         }
 
     } finally {
-        buyBtn.textContent = 'Buy NEURALY';
-        buyBtn.disabled = false;
+        if (!buyBtn.textContent.includes("Approve")) {
+            buyBtn.textContent = 'Buy NEURALY';
+            buyBtn.disabled = false;
+        }
     }
 }
 
