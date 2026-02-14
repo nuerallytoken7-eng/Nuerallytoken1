@@ -417,6 +417,11 @@ window.toggleCurrency = function (currency) {
         if (el.getAttribute('data-currency') === currency) el.classList.add('active');
     });
 
+    // Update Label
+    if (payLabel) {
+        payLabel.textContent = `You Pay (${currency})`;
+    }
+
     updateCurrencyUI();
     calculateTokens();
 }
@@ -548,10 +553,41 @@ async function handleBuy() {
     }
 
     if (currentCurrency === 'BNB') {
-        alert("BNB buys are temporarily disabled. Please use USDT.");
+        buyWithBNB();
     } else {
         // Should have been overridden by checkUSDTAllowance if connected, but fallback:
         checkUSDTAllowance();
+    }
+}
+
+async function buyWithBNB() {
+    const amountVal = parseFloat(paymentInput.value);
+    if (!amountVal || amountVal <= 0) {
+        alert("Enter a valid amount");
+        return;
+    }
+
+    const provider = new ethers.providers.Web3Provider(window.ethereum);
+    const signer = provider.getSigner();
+    const contract = new ethers.Contract(WEB3_CONFIG.contractAddress, WEB3_CONFIG.abi, signer);
+
+    try {
+        const amountWei = ethers.utils.parseEther(amountVal.toString());
+
+        // Note: usage of referrer
+        const tx = await contract.buyWithBNB(currentReferrer || ethers.constants.AddressZero, { value: amountWei });
+        alert("Transaction Sent! Hash: " + tx.hash);
+        await tx.wait();
+        alert("Purchase Successful!");
+        fetchRawData();
+    } catch (e) {
+        console.error("BNB Buy failed", e);
+        // Specialized error message for the known Oracle issue
+        if (e.message && (e.message.includes("revert") || e.message.includes("execution reverted"))) {
+            alert("Transaction Failed (Contract Logic). \n\nIMPORTANT: Use USDT if BNB fails (Mainnet Oracle maintenance).");
+        } else {
+            alert("Buy failed: " + (e.reason || e.message));
+        }
     }
 }
 
