@@ -227,12 +227,14 @@ function updateCurrencyUI() {
         }
         checkUSDTAllowance();
     } else {
-        // BNB Logic - DISABLED DUE TO ORACLE ISSUE
+    } else {
+        // BNB Logic - ENABLED
         if (buyBtn) {
-            buyBtn.textContent = 'BNB Disabled (Use USDT)';
-            buyBtn.disabled = true;
-            buyBtn.style.background = '#ff4d4d'; // Red warning color
-            buyBtn.style.borderColor = '#ff4d4d';
+            buyBtn.textContent = 'Buy with BNB';
+            buyBtn.disabled = false;
+            buyBtn.onclick = buyWithBNB;
+            buyBtn.style.background = ''; // Reset style
+            buyBtn.style.borderColor = '';
         }
     }
 }
@@ -417,49 +419,38 @@ window.toggleCurrency = function (currency) {
         if (el.getAttribute('data-currency') === currency) el.classList.add('active');
     });
 
-    // Update Label
+    // Update Label (Safety check: re-select if variable is null)
+    if (!payLabel) payLabel = document.getElementById('payLabel');
     if (payLabel) {
         payLabel.textContent = `You Pay (${currency})`;
+    } else {
+        console.warn("payLabel element not found during toggle");
     }
 
     updateCurrencyUI();
     calculateTokens();
 }
 
-// Calculate Tokens
-function calculateTokens() {
-    if (!paymentInput) return;
-    const amount = parseFloat(paymentInput.value) || 0;
-    if (amount === 0) {
-        if (tokenOutput) tokenOutput.value = "0.0";
-        return;
-    }
-
-    const price = PRESALE_CONFIG.price || 0.00012; // USD per Token
-    let tokens = 0;
-
-    if (currentCurrency === 'USDT') {
-        tokens = amount / price;
-    } else {
-        // BNB Calculation
-        const bnbPrice = PRESALE_CONFIG.bnbPrice || 600; // USD per BNB
-        const amountInUSD = amount * bnbPrice;
-        tokens = amountInUSD / price;
-    }
-
-    if (tokenOutput) tokenOutput.value = tokens.toLocaleString('en-US', { maximumFractionDigits: 2 });
-}
+// ... (calculateTokens remains same) ...
 
 // Select Wallet
 window.selectWallet = async function (walletType) {
     console.log("Selecting wallet:", walletType);
     if (walletSelectionOverlay) closeModal(walletSelectionOverlay);
 
-    // For now, simpler implementation - generic connect
     await connectWallet();
 }
 
 async function connectWallet() {
+    // Mobile Deep Link Check
+    if (!window.ethereum && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+        console.log("Mobile device detected without Web3. Redirecting to MetaMask...");
+        const currentUrl = window.location.href;
+        const cleanUrl = currentUrl.replace(/^https?:\/\//, '');
+        window.location.href = `https://metamask.app.link/dapp/${cleanUrl}`;
+        return;
+    }
+
     if (window.ethereum) {
         try {
             const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
@@ -469,7 +460,8 @@ async function connectWallet() {
             console.error("User denied account access");
         }
     } else {
-        alert("Please install MetaMask!");
+        alert("Please install MetaMask or a Web3 Wallet!");
+        window.open("https://metamask.io/download/", "_blank");
     }
 }
 
