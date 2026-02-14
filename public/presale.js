@@ -52,6 +52,7 @@ WEB3_CONFIG.abi = [
     "function getCurrentPrice() public view returns (uint256)",
     "function tokensSoldInCurrentStage() public view returns (uint256)",
     "function currentStage() public view returns (uint256)",
+    "function getLatestPrice() public view returns (uint256)",
     "function totalRaisedBNB() public view returns (uint256)",
     "function getReferralPercent() public view returns (uint256)",
     "function STAGE_ALLOCATION() public view returns (uint256)"
@@ -146,21 +147,25 @@ async function fetchRawData() {
         const contract = new ethers.Contract(WEB3_CONFIG.contractAddress, WEB3_CONFIG.abi, provider);
 
         // Fetch Data in bulk
-        const [stageIndex, tokensSold, allocation, priceWei] = await Promise.all([
+        // Also fetch getLatestPrice() for BNB pricing
+        const [stageIndex, tokensSold, allocation, priceWei, bnbPriceWei] = await Promise.all([
             contract.currentStage(),
             contract.tokensSoldInCurrentStage(),
             contract.STAGE_ALLOCATION(),
-            contract.getCurrentPrice()
+            contract.getCurrentPrice(),
+            contract.getLatestPrice()
         ]);
 
         // Helper to formatting
         const soldTokens = parseFloat(ethers.utils.formatEther(tokensSold));
         const allocationTokens = parseFloat(ethers.utils.formatEther(allocation));
         const price = parseFloat(ethers.utils.formatEther(priceWei));
+        const bnbPrice = parseFloat(ethers.utils.formatEther(bnbPriceWei));
 
         PRESALE_CONFIG.raised = soldTokens;
         PRESALE_CONFIG.hardcap = allocationTokens;
-        PRESALE_CONFIG.price = price; // Store price
+        PRESALE_CONFIG.price = price; // Token Price in USD
+        PRESALE_CONFIG.bnbPrice = bnbPrice; // BNB Price in USD
 
         // Update UI
         const currentStageNum = parseInt(stageIndex) + 1;
@@ -170,21 +175,45 @@ async function fetchRawData() {
         if (headerTitle) {
             headerTitle.textContent = `Stage ${currentStageNum} Presale`;
         } else {
-            // Fallback if structure is different
             console.log("Header not found");
         }
-
-        // Also find the "Presale Access" text if it's different in HTML
-        // Looking at HTML: <div class="modal-header"> ... <button ...>Connect Wallet</button> ... </div>
-        // Wait, the HTML shown in view_file for index.html (lines 1362-1371) DOES NOT HAVE AN H2 in modal-header!
-        // It has buttons.
-        // I need to ADD the Stage info to the UI.
 
         updateProgress();
 
     } catch (e) {
         console.error("Error fetching data:", e);
     }
+}
+
+// -------------------------------------------------------------
+// TOKEN CALCULATION (NEW)
+// -------------------------------------------------------------
+function calculateTokens() {
+    if (!paymentInput || !tokenOutput) return;
+
+    const inputVal = parseFloat(paymentInput.value);
+
+    // If invalid input, clear output
+    if (isNaN(inputVal) || inputVal <= 0) {
+        tokenOutput.value = "";
+        return;
+    }
+
+    const pricePerToken = PRESALE_CONFIG.price || 0.00012; // Fallback
+    let estimatedTokens = 0;
+
+    if (currentCurrency === 'USDT') {
+        // USDT Calculation: Input / Price
+        estimatedTokens = inputVal / pricePerToken;
+    } else {
+        // BNB Calculation: (Input * BNB_Price) / Token_Price
+        const bnbPrice = PRESALE_CONFIG.bnbPrice || 600; // Fallback $600
+        const usdValue = inputVal * bnbPrice;
+        estimatedTokens = usdValue / pricePerToken;
+    }
+
+    // Format output (2 decimal places)
+    tokenOutput.value = estimatedTokens.toLocaleString('en-US', { maximumFractionDigits: 2 });
 }
 
 
