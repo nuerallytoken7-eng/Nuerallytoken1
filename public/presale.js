@@ -89,18 +89,8 @@ window.openPresaleModal = function () {
         // Force visibility just in case
         overlay.style.opacity = '1';
         overlay.style.pointerEvents = 'auto';
-
-        // MOBILE AUTO-CONNECT FEATURE
-        // If on mobile, try to connect immediately to save a click
-        if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
-            console.log("Mobile detected: Auto-triggering wallet connection...");
-            setTimeout(() => {
-                connectWallet();
-            }, 500); // Small delay to let modal appear first
-        }
-
     } else {
-        alert("Error: Presale Modal overlay not found!");
+        alert("Error: Presale Modal overlay not found! ID mismatch?");
         console.error("Presale Overlay NOT FOUND");
     }
 }
