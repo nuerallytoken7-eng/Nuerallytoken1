@@ -809,7 +809,7 @@
                     <a class="btn btn-ghost" href="#" id="litepaperLink">Litepaper (PDF)</a>
                     <!-- Replace # with presale URL; or keep disabled until live -->
                     <a class="btn btn-primary" href="#" id="presaleLink"
-                        onclick="event.preventDefault(); window.openPresaleModal && window.openPresaleModal();">Get
+                        onclick="event.preventDefault(); if(window.openPresaleModal) { window.openPresaleModal(); } else { alert('Error: Presale script NOT loaded yet.'); }">Get
                         Early Access</a>
                 </div>
             </div>
@@ -1490,7 +1490,7 @@
         ["litepaperLink", "litepaperCTA", "litepaperFooter", "telegramLink", "xLink"].forEach(disableIfPlaceholder);
     </script>
     <!-- Presale Dependencies -->
-    <link rel="stylesheet" href="public/presale.css">
+    <link rel="stylesheet" href="presale.css">
     <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
 
     <!-- Presale Modal Overlay -->
@@ -1604,14 +1604,14 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"
         integrity="sha512-FDcVY+g7vc55I8ZY0C0n8n6eB3y3o5pbhISy5hYre5q7j5tLC9h0n83gP13dKOi9frLGLDAlPpD2n1b75qZ1ew=="
         crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-    <script src="public/fluid.js?v=2"></script>
-    <script src="public/presale.js?v=4"
-        onerror="alert('Error: Failed to load public/presale.js! Check console.')"></script>
-    <script src="public/scroll-reveal.js?v=2"></script>
+    <script src="fluid.js?v=2"></script>
+    <script src="presale.js?v=5"
+        onerror="alert('Error: Failed to load presale.js! (Try public/presale.js if using file://)')"></script>
+    <script src="scroll-reveal.js?v=2"></script>
 
     <!-- Particles Effect -->
-    <link rel="stylesheet" href="public/particles.css?v=2">
-    <script src="public/particles.js?v=2"></script>
+    <link rel="stylesheet" href="particles.css?v=2">
+    <script src="particles.js?v=2"></script>
 </body>
 
 </html>
