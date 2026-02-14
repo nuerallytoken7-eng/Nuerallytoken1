@@ -80,6 +80,21 @@ if (refParam && refParam.startsWith('0x')) {
 let presaleOverlay, walletSelectionOverlay, connectBtn, mainConnectBtn, closeModalBtn, closeWalletModalBtn;
 let buyBtn, paymentInput, payLabel, tokenOutput, progressBar, raisedDisplay;
 
+// EXPOSE FUNCTION GLOBALLY FOR INLINE CLICK
+window.openPresaleModal = function () {
+    console.log("openPresaleModal called");
+    const overlay = document.getElementById('presaleOverlay');
+    if (overlay) {
+        openModal(overlay);
+        // Force visibility just in case
+        overlay.style.opacity = '1';
+        overlay.style.pointerEvents = 'auto';
+    } else {
+        alert("Error: Presale Modal overlay not found!");
+        console.error("Presale Overlay NOT FOUND");
+    }
+}
+
 function initPresale() {
     console.log("initPresale started");
 
@@ -103,26 +118,12 @@ function initPresale() {
     // Note: We don't call updateProgress here immediately because we need data first
     fetchRawData();
 
-    // Main Presale Modal Triggers
+    // Attach listener to Main Button if it exists (Backup to inline onclick)
     if (mainConnectBtn) {
-        // Remove old listeners if any (not strictly needed for fresh load but good practice)
-        mainConnectBtn.replaceWith(mainConnectBtn.cloneNode(true));
-        mainConnectBtn = document.getElementById('presaleLink'); // Re-select after replace
-
-        mainConnectBtn.addEventListener('click', (e) => {
-            console.log("Get Early Access Clicked");
+        mainConnectBtn.onclick = function (e) {
             e.preventDefault();
-            if (presaleOverlay) {
-                openModal(presaleOverlay);
-                // Also ensure it's visible via direct style if CSS fails
-                presaleOverlay.style.opacity = '1';
-                presaleOverlay.style.pointerEvents = 'auto';
-            } else {
-                console.error("Presale Overlay NOT FOUND");
-            }
-        });
-    } else {
-        console.error("Get Early Access Button NOT FOUND");
+            window.openPresaleModal();
+        };
     }
 
     if (closeModalBtn) closeModalBtn.addEventListener('click', () => closeModal(presaleOverlay));

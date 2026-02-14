@@ -808,7 +808,9 @@
                     <!-- Replace # with your actual PDF URL or /docs/NUERALLY_Litepaper.pdf -->
                     <a class="btn btn-ghost" href="#" id="litepaperLink">Litepaper (PDF)</a>
                     <!-- Replace # with presale URL; or keep disabled until live -->
-                    <a class="btn btn-primary" href="#" id="presaleLink">Get Early Access</a>
+                    <a class="btn btn-primary" href="#" id="presaleLink"
+                        onclick="event.preventDefault(); window.openPresaleModal && window.openPresaleModal();">Get
+                        Early Access</a>
                 </div>
             </div>
         </div>
