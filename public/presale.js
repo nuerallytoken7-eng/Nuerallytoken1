@@ -89,135 +89,23 @@ window.openPresaleModal = function () {
         // Force visibility just in case
         overlay.style.opacity = '1';
         overlay.style.pointerEvents = 'auto';
+
+        // MOBILE AUTO-CONNECT FEATURE
+        // If on mobile, try to connect immediately to save a click
+        if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+            console.log("Mobile detected: Auto-triggering wallet connection...");
+            setTimeout(() => {
+                connectWallet();
+            }, 500); // Small delay to let modal appear first
+        }
+
     } else {
         alert("Error: Presale Modal overlay not found!");
         console.error("Presale Overlay NOT FOUND");
     }
 }
-
-function initPresale() {
-    console.log("initPresale started");
-
-
-
-
-    // Select Elements
-    presaleOverlay = document.getElementById('presaleOverlay');
-    walletSelectionOverlay = document.getElementById('walletSelectionOverlay');
-    connectBtn = document.getElementById('connectWalletBtn');
-    mainConnectBtn = document.getElementById('presaleLink');
-    closeModalBtn = document.getElementById('closeModal');
-    closeWalletModalBtn = document.getElementById('closeWalletModal');
-    buyBtn = document.getElementById('buyBtn');
-    paymentInput = document.getElementById('paymentInput');
-    payLabel = document.getElementById('payLabel');
-    tokenOutput = document.getElementById('tokenOutput');
-    progressBar = document.getElementById('progressBar');
-    raisedDisplay = document.getElementById('raisedAmount');
-
-    console.log("Main Button:", mainConnectBtn);
-    console.log("Overlay:", presaleOverlay);
-
-    // Note: We don't call updateProgress here immediately because we need data first
-    fetchRawData();
-
-    // Attach listener to Main Button if it exists (Backup to inline onclick)
-    if (mainConnectBtn) {
-        mainConnectBtn.onclick = function (e) {
-            e.preventDefault();
-            window.openPresaleModal();
-        };
-    }
-
-    if (closeModalBtn) closeModalBtn.addEventListener('click', () => closeModal(presaleOverlay));
-
-    // Close on click outside
-    if (presaleOverlay) {
-        presaleOverlay.addEventListener('click', (e) => {
-            if (e.target === presaleOverlay) closeModal(presaleOverlay);
-        });
-    }
-
-    // Wallet Selection Triggers
-    if (connectBtn) connectBtn.addEventListener('click', () => openModal(walletSelectionOverlay));
-    if (closeWalletModalBtn) closeWalletModalBtn.addEventListener('click', () => closeModal(walletSelectionOverlay));
-    if (walletSelectionOverlay) {
-        walletSelectionOverlay.addEventListener('click', (e) => {
-            if (e.target === walletSelectionOverlay) closeModal(walletSelectionOverlay);
-        });
-    }
-
-    // Input calculation
-    if (paymentInput) paymentInput.addEventListener('input', calculateTokens);
-
-    // Initial button state
-    if (buyBtn) buyBtn.addEventListener('click', handleBuy);
-
-    // Add To Wallet Button
-    const addToWalletBtn = document.getElementById('addToWalletBtn');
-    if (addToWalletBtn) {
-        addToWalletBtn.addEventListener('click', addTokenToWallet);
-    }
-
-    // Set initial Label
-    updateCurrencyUI();
-
-    // Auto-refresh data every 10s
-    setInterval(fetchRawData, 10000);
-}
-
-async function fetchRawData() {
-    try {
-        const provider = new ethers.providers.JsonRpcProvider(WEB3_CONFIG.rpcUrl);
-        const contract = new ethers.Contract(WEB3_CONFIG.contractAddress, WEB3_CONFIG.abi, provider);
-
-        // Fetch Data in bulk
-        // Note: We removed getLatestPrice() because the Oracle on Mainnet is failing
-        const [stageIndex, tokensSold, allocation, priceWei] = await Promise.all([
-            contract.currentStage(),
-            contract.tokensSoldInCurrentStage(),
-            contract.STAGE_ALLOCATION(),
-            contract.getCurrentPrice()
-        ]);
-
-        // Fetch BNB Price from API (Fallback since Contract Oracle fails)
-        let bnbPrice = 600; // Default
-        try {
-            const response = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=BNBUSDT');
-            const data = await response.json();
-            bnbPrice = parseFloat(data.price);
-            console.log("BNB Price (API):", bnbPrice);
-        } catch (apiErr) {
-            console.error("API Price Fetch Failed:", apiErr);
-        }
-
-        // Helper to formatting
-        const soldTokens = parseFloat(ethers.utils.formatEther(tokensSold));
-        const allocationTokens = parseFloat(ethers.utils.formatEther(allocation));
-        const price = parseFloat(ethers.utils.formatEther(priceWei));
-
-        PRESALE_CONFIG.raised = soldTokens;
-        PRESALE_CONFIG.hardcap = allocationTokens;
-        PRESALE_CONFIG.price = price; // Token Price in USD
-        PRESALE_CONFIG.bnbPrice = bnbPrice; // BNB Price in USD
-
-        // Update UI
-        const currentStageNum = parseInt(stageIndex) + 1;
-        const headerTitle = document.querySelector('.modal-header h2');
-
-        if (headerTitle) {
-            headerTitle.textContent = `Stage ${currentStageNum} Presale`;
-        }
-
-        updateProgress();
-
-    } catch (e) {
-        console.error("Error fetching data:", e);
-    }
-}
-
-// ... (calculateTokens remains same) ...
-
+//...
+//...
 function updateCurrencyUI() {
     if (currentCurrency === 'USDT') {
         // Change button to "Approve USDT" initially, then check allowance
@@ -227,14 +115,12 @@ function updateCurrencyUI() {
         }
         checkUSDTAllowance();
     } else {
-    } else {
-        // BNB Logic - ENABLED
+        // BNB Logic - DISABLED (User request)
         if (buyBtn) {
-            buyBtn.textContent = 'Buy with BNB';
-            buyBtn.disabled = false;
-            buyBtn.onclick = buyWithBNB;
-            buyBtn.style.background = ''; // Reset style
-            buyBtn.style.borderColor = '';
+            buyBtn.textContent = 'BNB Disabled';
+            buyBtn.disabled = true;
+            buyBtn.style.background = '#ff4d4d';
+            buyBtn.style.borderColor = '#ff4d4d';
         }
     }
 }
