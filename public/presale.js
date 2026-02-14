@@ -145,6 +145,54 @@ function initPresale() {
     setInterval(fetchRawData, 10000);
 }
 
+async function fetchRawData() {
+    console.log("Fetching presale data...");
+    try {
+        const provider = new ethers.providers.JsonRpcProvider(WEB3_CONFIG.rpcUrl);
+        const contract = new ethers.Contract(WEB3_CONFIG.contractAddress, WEB3_CONFIG.abi, provider);
+
+        // Fetch Data
+        const [stageIndex, tokensSold, allocation, priceWei] = await Promise.all([
+            contract.currentStage(),
+            contract.tokensSoldInCurrentStage(),
+            contract.STAGE_ALLOCATION(),
+            contract.getCurrentPrice()
+        ]);
+
+        // Helper to formatting
+        const soldTokens = parseFloat(ethers.utils.formatEther(tokensSold));
+        const allocationTokens = parseFloat(ethers.utils.formatEther(allocation));
+        const price = parseFloat(ethers.utils.formatEther(priceWei));
+
+        PRESALE_CONFIG.raised = soldTokens;
+        PRESALE_CONFIG.hardcap = allocationTokens;
+        PRESALE_CONFIG.price = price; // Token Price in USD
+
+        // BNB Price Fallback (API)
+        try {
+            const response = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=BNBUSDT');
+            const data = await response.json();
+            PRESALE_CONFIG.bnbPrice = parseFloat(data.price);
+        } catch (err) {
+            console.log("BNB Price API failed, using default 600");
+            PRESALE_CONFIG.bnbPrice = 600;
+        }
+
+        // Update UI Text
+        const currentStageNum = parseInt(stageIndex) + 1;
+        const headerTitle = document.querySelector('.modal-header h2');
+        if (headerTitle) headerTitle.textContent = `Stage ${currentStageNum} Presale`;
+
+        const stageTitle = document.getElementById('stageTitle');
+        if (stageTitle) stageTitle.textContent = `Stage ${currentStageNum}`;
+
+        updateProgress();
+
+    } catch (e) {
+        console.error("Error fetching data:", e);
+    }
+}
+
 function updateCurrencyUI() {
     if (currentCurrency === 'USDT') {
         // Change button to "Approve USDT" initially, then check allowance
