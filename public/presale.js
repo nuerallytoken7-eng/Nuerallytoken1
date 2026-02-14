@@ -401,3 +401,182 @@ function closeModal(modal) {
         modal.style.display = 'none';
     }, 300);
 }
+
+// -----------------------------------------------------------
+// NEW LOGIC: Wallet, Currency, Calculation (Restored)
+// -----------------------------------------------------------
+
+// Toggle Currency
+window.toggleCurrency = function (currency) {
+    currentCurrency = currency;
+    console.log("Currency switched to:", currency);
+
+    // Update active class
+    document.querySelectorAll('.token-selector').forEach(el => {
+        el.classList.remove('active');
+        if (el.getAttribute('data-currency') === currency) el.classList.add('active');
+    });
+
+    updateCurrencyUI();
+    calculateTokens();
+}
+
+// Calculate Tokens
+function calculateTokens() {
+    if (!paymentInput) return;
+    const amount = parseFloat(paymentInput.value) || 0;
+    if (amount === 0) {
+        if (tokenOutput) tokenOutput.value = "0.0";
+        return;
+    }
+
+    const price = PRESALE_CONFIG.price || 0.00012; // USD per Token
+    let tokens = 0;
+
+    if (currentCurrency === 'USDT') {
+        tokens = amount / price;
+    } else {
+        // BNB Calculation
+        const bnbPrice = PRESALE_CONFIG.bnbPrice || 600; // USD per BNB
+        const amountInUSD = amount * bnbPrice;
+        tokens = amountInUSD / price;
+    }
+
+    if (tokenOutput) tokenOutput.value = tokens.toLocaleString('en-US', { maximumFractionDigits: 2 });
+}
+
+// Select Wallet
+window.selectWallet = async function (walletType) {
+    console.log("Selecting wallet:", walletType);
+    if (walletSelectionOverlay) closeModal(walletSelectionOverlay);
+
+    // For now, simpler implementation - generic connect
+    await connectWallet();
+}
+
+async function connectWallet() {
+    if (window.ethereum) {
+        try {
+            const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+            userAddress = accounts[0];
+            onWalletConnected();
+        } catch (error) {
+            console.error("User denied account access");
+        }
+    } else {
+        alert("Please install MetaMask!");
+    }
+}
+
+function onWalletConnected() {
+    // Update Connect Button
+    const shortAddr = userAddress.substring(0, 6) + "..." + userAddress.substring(38);
+    if (connectBtn) {
+        connectBtn.textContent = shortAddr;
+        connectBtn.classList.add('connected');
+    }
+
+    // Check Chain ID
+    checkChainId();
+
+    // Enable Buy Button if currency is valid
+    updateCurrencyUI();
+}
+
+async function checkChainId() {
+    const provider = new ethers.providers.Web3Provider(window.ethereum);
+    const { chainId } = await provider.getNetwork();
+    if (chainId !== WEB3_CONFIG.chainId) {
+        // Warning but don't block fully if they want to read data
+        console.warn(`Wrong Chain ID: ${chainId} (Expected: ${WEB3_CONFIG.chainId})`);
+    }
+}
+
+async function checkUSDTAllowance() {
+    if (!userAddress) return;
+
+    const provider = new ethers.providers.Web3Provider(window.ethereum);
+    const signer = provider.getSigner();
+    // Use ERC20 ABI
+    const usdtContract = new ethers.Contract(WEB3_CONFIG.usdtAddress, WEB3_CONFIG.erc20Abi, signer);
+
+    try {
+        const allowance = await usdtContract.allowance(userAddress, WEB3_CONFIG.contractAddress);
+        const amount = ethers.utils.parseUnits("1000000000", 18); // Check large enough allowance
+
+        if (allowance.lt(amount)) {
+            if (buyBtn) {
+                buyBtn.textContent = "Approve USDT";
+                buyBtn.onclick = approveUSDT;
+                buyBtn.disabled = false;
+            }
+        } else {
+            if (buyBtn) {
+                buyBtn.textContent = "Buy with USDT";
+                buyBtn.onclick = buyWithUSDT;
+                buyBtn.disabled = false;
+            }
+        }
+    } catch (e) {
+        console.error("Error checking allowance:", e);
+    }
+}
+
+async function approveUSDT() {
+    if (!userAddress) return;
+    const provider = new ethers.providers.Web3Provider(window.ethereum);
+    const signer = provider.getSigner();
+    const usdtContract = new ethers.Contract(WEB3_CONFIG.usdtAddress, WEB3_CONFIG.erc20Abi, signer);
+
+    try {
+        buyBtn.textContent = "Approving...";
+        buyBtn.disabled = true;
+        const tx = await usdtContract.approve(WEB3_CONFIG.contractAddress, ethers.constants.MaxUint256);
+        await tx.wait();
+        checkUSDTAllowance();
+    } catch (e) {
+        console.error("Approve failed", e);
+        buyBtn.textContent = "Approve Failed";
+        buyBtn.disabled = false;
+    }
+}
+
+async function handleBuy() {
+    if (!userAddress) {
+        alert("Please connect wallet first!");
+        return;
+    }
+
+    if (currentCurrency === 'BNB') {
+        alert("BNB buys are temporarily disabled. Please use USDT.");
+    } else {
+        // Should have been overridden by checkUSDTAllowance if connected, but fallback:
+        checkUSDTAllowance();
+    }
+}
+
+async function buyWithUSDT() {
+    const amountVal = parseFloat(paymentInput.value);
+    if (!amountVal || amountVal <= 0) {
+        alert("Enter a valid amount");
+        return;
+    }
+
+    const provider = new ethers.providers.Web3Provider(window.ethereum);
+    const signer = provider.getSigner();
+    const contract = new ethers.Contract(WEB3_CONFIG.contractAddress, WEB3_CONFIG.abi, signer);
+
+    try {
+        // USDT on BSC Mainnet has 18 decimals usually (Binance-Peg BSC-USD)
+        const amountWei = ethers.utils.parseUnits(amountVal.toString(), 18);
+
+        const tx = await contract.buyWithUSDT(amountWei, currentReferrer || ethers.constants.AddressZero);
+        alert("Transaction Sent! Hash: " + tx.hash);
+        await tx.wait();
+        alert("Purchase Successful!");
+        fetchRawData(); // Refresh
+    } catch (e) {
+        console.error("Buy failed", e);
+        alert("Buy failed: " + (e.reason || e.message));
+    }
+}
