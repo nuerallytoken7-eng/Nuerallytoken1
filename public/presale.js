@@ -14,7 +14,7 @@ const PRESALE_CONFIG = {
 
 // Web3 Config
 // Web3 Config
-const ENV = "TESTNET"; // Change to "MAINNET" for production
+const ENV = "MAINNET"; // Change to "MAINNET" for production
 
 const VALID_CHAINS = {
     MAINNET: 56,   // BNB Smart Chain
@@ -24,8 +24,9 @@ const VALID_CHAINS = {
 
 const CONFIG = {
     MAINNET: {
-        contractAddress: "0xREPLACE_WITH_MAINNET_ADDRESS",
+        contractAddress: "0x7dC1787D85b871c76E446690b9acba3Baa45638A",
         usdtAddress: "0x55d398326f99059fF775485246999027B3197955", // Binance-Peg BSC-USD
+        tokenAddress: "0xc63a84c9AF74902A872472bb0eE9Ae98e18810aD",
         chainId: 56,
         chainHex: "0x38",
         rpcUrl: "https://bsc-dataseed.binance.org/",
