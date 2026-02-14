@@ -317,7 +317,29 @@ window.toggleCurrency = function (currency) {
     calculateTokens();
 }
 
-// ... (calculateTokens remains same) ...
+// Calculate Tokens
+function calculateTokens() {
+    if (!paymentInput) return;
+    const amount = parseFloat(paymentInput.value) || 0;
+    if (amount === 0) {
+        if (tokenOutput) tokenOutput.value = "0.0";
+        return;
+    }
+
+    const price = PRESALE_CONFIG.price || 0.00012; // USD per Token
+    let tokens = 0;
+
+    if (currentCurrency === 'USDT') {
+        tokens = amount / price;
+    } else {
+        // BNB Calculation
+        const bnbPrice = PRESALE_CONFIG.bnbPrice || 600; // USD per BNB
+        const amountInUSD = amount * bnbPrice;
+        tokens = amountInUSD / price;
+    }
+
+    if (tokenOutput) tokenOutput.value = tokens.toLocaleString('en-US', { maximumFractionDigits: 2 });
+}
 
 // Select Wallet
 window.selectWallet = async function (walletType) {
