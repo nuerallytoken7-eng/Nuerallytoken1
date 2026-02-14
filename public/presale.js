@@ -376,3 +376,28 @@ async function addTokenToWallet() {
 
 // Auto-init if script loaded
 document.addEventListener('DOMContentLoaded', initPresale);
+
+// Helper Functions - Modal Logic
+function openModal(modal) {
+    if (!modal) return;
+    modal.style.display = 'flex'; // Ensure it's part of layout
+    // Small delay to allow display:flex to apply before opacity transition
+    setTimeout(() => {
+        modal.classList.add('active');
+        modal.style.opacity = '1';
+        modal.style.pointerEvents = 'auto';
+    }, 10);
+    console.log("Modal Opened:", modal.id);
+}
+
+function closeModal(modal) {
+    if (!modal) return;
+    modal.classList.remove('active');
+    modal.style.opacity = '0';
+    modal.style.pointerEvents = 'none';
+
+    // Wait for transition to finish before hiding
+    setTimeout(() => {
+        modal.style.display = 'none';
+    }, 300);
+}
