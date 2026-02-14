@@ -95,7 +95,8 @@ async function main() {
             console.log("MockUSDT deployed to:", usdt.address);
             usdtAddress = usdt.address;
         } else {
-            // Mainnet or other
+            // Mainnet (BSC)
+            console.log("Configuring for BSC Mainnet...");
             usdtAddress = "0x55d398326f99059fF775485246999027B3197955"; // BSC Mainnet USDT
         }
 
