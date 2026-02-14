@@ -80,17 +80,38 @@ async function main() {
         console.log("4. Update 'presale.js' with the new Presale Address.");
 
     } else {
-        // This block remains largely the same, but needs to be updated to reflect the new Presale parameters
-        // and the absence of a mock oracle for mainnet.
-        // For mainnet, usdtAddress is fixed, and an oracle address would be passed.
-        // This part of the script would need a real oracle address for mainnet deployment.
-        // For now, we'll keep the original structure for the else block, assuming the user will update it for mainnet.
-        let usdtAddress = "0x337610d27c682E347C9cD60BD4b3b107C9d343DD"; // BSC Testnet USDT
-        let oracleAddress = "0x... (Mainnet Oracle Address)"; // Placeholder for a real oracle
+        // --- TESTNET DEPLOYMENT (BSC Testnet) ---
+        console.log("Configuring for Testnet/Mainnet...");
 
+        // 1. USDT Handling 
+        // For Testnet: We deploy a MockUSDT to easily mint tokens for testing
+        // For Mainnet: You would use the real USDT address (0x55d398326f99059fF775485246999027B3197955)
+        let usdtAddress;
+        if (network === "bscTestnet") {
+            console.log("Deploying MockUSDT for Testnet...");
+            const MockUSDT = await hre.ethers.getContractFactory("MockUSDT");
+            const usdt = await MockUSDT.deploy();
+            await usdt.deployed();
+            console.log("MockUSDT deployed to:", usdt.address);
+            usdtAddress = usdt.address;
+        } else {
+            // Mainnet or other
+            usdtAddress = "0x55d398326f99059fF775485246999027B3197955"; // BSC Mainnet USDT
+        }
+
+        // 2. Oracle (Chainlink)
+        // BSC Testnet BNB/USD: 0x2514895c72f50D8bd4B4F9b1110F0D6bD2c97526
+        // BSC Mainnet BNB/USD: 0x0567F2323251f0Aab15fc0bD16F0F5D30716422B
+        let oracleAddress;
+        if (network === "bscTestnet") {
+            oracleAddress = "0x2514895c72f50D8bd4B4F9b1110F0D6bD2c97526";
+        } else {
+            oracleAddress = "0x0567F2323251f0Aab15fc0bD16F0F5D30716422B";
+        }
+
+        // 3. Deploy Presale
         const Presale = await hre.ethers.getContractFactory("NuerallyPresale");
-        // Pass deployer as Marketing Wallet for now
-        // For mainnet, you'd pass a real oracle address here
+        // Params: Token, USDT, Owner, MarketingWallet, Oracle
         const presale = await Presale.deploy(token.address, usdtAddress, deployer.address, deployer.address, oracleAddress);
         await presale.deployed();
         console.log("NuerallyPresale deployed to:", presale.address);
@@ -101,28 +122,37 @@ async function main() {
         await approveTx.wait();
         console.log("Approval Complete.");
 
-        // 3. Deploy Staking (Original Staking for mainnet, or update to RealYield)
-        const Staking = await hre.ethers.getContractFactory("NuerallyStaking");
-        const staking = await Staking.deploy(token.address, deployer.address);
-        await staking.deployed();
-        console.log("NuerallyStaking deployed to:", staking.address);
+        // 4. Deploy REAL YIELD Staking (RevenueSharingStaking)
+        const RealYield = await hre.ethers.getContractFactory("RevenueSharingStaking");
+        const realYield = await RealYield.deploy(token.address, usdtAddress, deployer.address);
+        await realYield.deployed();
+        console.log("RevenueSharingStaking deployed to:", realYield.address);
 
-        // 4. Deploy Vesting (Team)
-        // Config: Start = Now, Cliff = 180 days, Duration = 365 days
-        const now = Math.floor(Date.now() / 1000);
+        // 5. Deploy Vesting (Team)
+        // Config: Start = Now + 5 mins, Cliff = 180 days, Duration = 365 days
+        const blockNum = await hre.ethers.provider.getBlockNumber();
+        const block = await hre.ethers.provider.getBlock(blockNum);
+        const startTime = block.timestamp + 300; // Start in 5 mins
         const cliff = 180 * 24 * 60 * 60;
         const duration = 365 * 24 * 60 * 60;
 
         const Vesting = await hre.ethers.getContractFactory("NuerallyVesting");
-        const vesting = await Vesting.deploy(deployer.address, now, cliff, duration, deployer.address);
+        const vesting = await Vesting.deploy(deployer.address, startTime, cliff, duration, deployer.address);
         await vesting.deployed();
         console.log("NuerallyVesting (Team) deployed to:", vesting.address);
 
+        // 6. Whitelist Contracts in Token (Exclude from limits)
+        console.log("Excluding contracts from Anti-Snipe limits...");
+        await token.excludeFromLimits(presale.address, true);
+        await token.excludeFromLimits(realYield.address, true);
+        await token.excludeFromLimits(vesting.address, true);
+
         console.log("\n--- NEXT STEPS ---");
         console.log("1. Send 3.5B Tokens to Presale:", presale.address);
-        console.log("2. Send 2.0B Tokens to Staking:", staking.address);
+        console.log("2. Send 2.0B Tokens to Staking:", realYield.address);
         console.log("3. Send 1.5B Tokens to Vesting:", vesting.address);
-        console.log("4. Update 'presale.js' with the new Presale Address.");
+        console.log("4. Update 'presale.js' (frontend) with the new Presale Address.");
+        console.log("5. (Optional) Verify contracts on BscScan.");
     }
 }
 
