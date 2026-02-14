@@ -545,7 +545,7 @@ async function handleBuy() {
     }
 
     if (currentCurrency === 'BNB') {
-        buyWithBNB();
+        alert("BNB sales are currently disabled. Please use USDT.");
     } else {
         // Should have been overridden by checkUSDTAllowance if connected, but fallback:
         checkUSDTAllowance();
