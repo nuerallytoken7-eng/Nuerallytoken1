@@ -1503,7 +1503,8 @@
                         Wallet</button>
                 </div>
                 <!-- Absolute Position Close Button to keep it top right -->
-                <button class="close-btn" id="closeModal" style="position: absolute; right: 0;">&times;</button>
+                <button class="close-btn" id="closeModal" style="position: absolute; right: 0;"
+                    onclick="window.closeModal && window.closeModal()">&times;</button>
             </div>
 
             <h2 id="stageTitle" style="text-align: center; margin-top: -10px; margin-bottom: 20px;">Stage 1</h2>
@@ -1529,7 +1530,8 @@
             <div class="input-group">
                 <div class="input-wrapper">
                     <label class="input-label" id="payLabel">You Pay (USDT)</label>
-                    <input type="number" id="paymentInput" class="token-input" placeholder="0.0" step="0.1">
+                    <input type="number" id="paymentInput" class="token-input" placeholder="0.0" step="0.1"
+                        oninput="window.calculateTokens && window.calculateTokens()">
                 </div>
                 <!-- Currency Selector -->
                 <div class="currency-toggle" id="currencyToggle">
@@ -1605,7 +1607,7 @@
         integrity="sha512-FDcVY+g7vc55I8ZY0C0n8n6eB3y3o5pbhISy5hYre5q7j5tLC9h0n83gP13dKOi9frLGLDAlPpD2n1b75qZ1ew=="
         crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script src="fluid.js?v=2"></script>
-    <script src="presale.js?v=11"></script>
+    <script src="presale.js?v=12"></script>
     <script src="scroll-reveal.js?v=2"></script>
 
     <!-- Particles Effect -->

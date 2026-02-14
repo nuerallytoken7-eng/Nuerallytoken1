@@ -266,10 +266,9 @@ async function addTokenToWallet() {
 document.addEventListener('DOMContentLoaded', initPresale);
 
 // Helper Functions - Modal Logic
-function openModal(modal) {
+window.openModal = function (modal) {
     if (!modal) return;
-    modal.style.display = 'flex'; // Ensure it's part of layout
-    // Small delay to allow display:flex to apply before opacity transition
+    modal.style.display = 'flex';
     setTimeout(() => {
         modal.classList.add('active');
         modal.style.opacity = '1';
@@ -278,49 +277,32 @@ function openModal(modal) {
     console.log("Modal Opened:", modal.id);
 }
 
-function closeModal(modal) {
+window.closeModal = function (modal) {
+    if (!modal) modal = document.getElementById('presaleOverlay'); // Default fallback
     if (!modal) return;
     modal.classList.remove('active');
     modal.style.opacity = '0';
     modal.style.pointerEvents = 'none';
 
-    // Wait for transition to finish before hiding
     setTimeout(() => {
         modal.style.display = 'none';
     }, 300);
 }
 
-// -----------------------------------------------------------
-// NEW LOGIC: Wallet, Currency, Calculation (Restored)
-// -----------------------------------------------------------
-
-// Toggle Currency
-window.toggleCurrency = function (currency) {
-    currentCurrency = currency;
-    console.log("Currency switched to:", currency);
-
-    // Update active class
-    document.querySelectorAll('.token-selector').forEach(el => {
-        el.classList.remove('active');
-        if (el.getAttribute('data-currency') === currency) el.classList.add('active');
-    });
-
-    // Update Label (Safety check: re-select if variable is null)
-    if (!payLabel) payLabel = document.getElementById('payLabel');
-    if (payLabel) {
-        payLabel.textContent = `You Pay (${currency})`;
-    } else {
-        console.warn("payLabel element not found during toggle");
-    }
-
-    updateCurrencyUI();
-    calculateTokens();
-}
+// ...
 
 // Calculate Tokens
-function calculateTokens() {
+window.calculateTokens = function () {
+    // Re-select if needed to be safe
+    if (!paymentInput) paymentInput = document.getElementById('paymentInput');
+    if (!tokenOutput) tokenOutput = document.getElementById('tokenOutput');
+
     if (!paymentInput) return;
     const amount = parseFloat(paymentInput.value) || 0;
+
+    // Debug log
+    // console.log("Calculating tokens for:", amount);
+
     if (amount === 0) {
         if (tokenOutput) tokenOutput.value = "0.0";
         return;
