@@ -104,8 +104,47 @@ window.openPresaleModal = function () {
         console.error("Presale Overlay NOT FOUND");
     }
 }
-//...
-//...
+
+function initPresale() {
+    console.log("initPresale started");
+
+    // Select Elements
+    presaleOverlay = document.getElementById('presaleOverlay');
+    walletSelectionOverlay = document.getElementById('walletSelectionOverlay');
+    connectBtn = document.getElementById('connectWalletBtn');
+    mainConnectBtn = document.getElementById('presaleLink');
+    closeModalBtn = document.getElementById('closeModal');
+    closeWalletModalBtn = document.getElementById('closeWalletModal');
+    buyBtn = document.getElementById('buyBtn');
+    paymentInput = document.getElementById('paymentInput');
+    payLabel = document.getElementById('payLabel');
+    tokenOutput = document.getElementById('tokenOutput');
+    progressBar = document.getElementById('progressBar');
+    raisedDisplay = document.getElementById('raisedAmount');
+
+    console.log("Main Button:", mainConnectBtn);
+
+    // Initial Data Fetch
+    fetchRawData();
+
+    // Attach listeners
+    if (mainConnectBtn) {
+        mainConnectBtn.onclick = function (e) {
+            e.preventDefault();
+            window.openPresaleModal();
+        };
+    }
+
+    // Wallet Selection Triggers
+    if (connectBtn) connectBtn.addEventListener('click', () => openModal(walletSelectionOverlay));
+
+    // Initial UI Setup
+    updateCurrencyUI();
+
+    // Auto-refresh data
+    setInterval(fetchRawData, 10000);
+}
+
 function updateCurrencyUI() {
     if (currentCurrency === 'USDT') {
         // Change button to "Approve USDT" initially, then check allowance
@@ -289,7 +328,26 @@ window.closeModal = function (modal) {
     }, 300);
 }
 
-// ...
+// Toggle Currency
+window.toggleCurrency = function (currency) {
+    currentCurrency = currency;
+    console.log("Currency switched to:", currency);
+
+    // Update active class
+    document.querySelectorAll('.token-selector').forEach(el => {
+        el.classList.remove('active');
+        if (el.getAttribute('data-currency') === currency) el.classList.add('active');
+    });
+
+    // Update Label
+    if (!payLabel) payLabel = document.getElementById('payLabel');
+    if (payLabel) {
+        payLabel.textContent = `You Pay (${currency})`;
+    }
+
+    updateCurrencyUI();
+    calculateTokens();
+}
 
 // Calculate Tokens
 window.calculateTokens = function () {
