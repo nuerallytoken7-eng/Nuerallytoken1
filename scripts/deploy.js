@@ -36,7 +36,7 @@ async function main() {
         console.log("NuerallyPresale deployed to:", presale.address);
 
         // Appprove Presale for marketing wallet
-        const approveTx = await token.approve(presale.address, hre.ethers.utils.parseUnits("1000000000", 18));
+        const approveTx = await token.approve(presale.address, hre.ethers.utils.parseUnits("10000000000", 18));
         await approveTx.wait();
         console.log("Approval Complete.");
 
@@ -117,8 +117,8 @@ async function main() {
         console.log("NuerallyPresale deployed to:", presale.address);
 
         // APPROVE Presale to spend Marketing Wallet tokens for referrals
-        console.log("Approving Presale to spend Marketing Wallet tokens (1 Billion Allowance)...");
-        const approveTx = await token.approve(presale.address, hre.ethers.utils.parseUnits("1000000000", 18));
+        console.log("Approving Presale to spend Marketing Wallet tokens (10 Billion Allowance)...");
+        const approveTx = await token.approve(presale.address, hre.ethers.utils.parseUnits("10000000000", 18));
         await approveTx.wait();
         console.log("Approval Complete.");
 
