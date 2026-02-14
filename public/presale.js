@@ -97,7 +97,7 @@ window.openPresaleModal = function () {
 
 function initPresale() {
     console.log("initPresale started");
-    alert("Debug: Presale Script Initialized (Click OK)"); // Force alert to prove it loaded
+
 
 
 

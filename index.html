@@ -809,8 +809,7 @@
                     <a class="btn btn-ghost" href="#" id="litepaperLink">Litepaper (PDF)</a>
                     <!-- Replace # with presale URL; or keep disabled until live -->
                     <a class="btn btn-primary" href="#" id="presaleLink"
-                        onclick="event.preventDefault(); if(window.openPresaleModal) { window.openPresaleModal(); } else { alert('Error: Presale script NOT loaded yet.'); }">Get
-                        Early Access</a>
+                        onclick="event.preventDefault(); window.openPresaleModal();">Get Early Access</a>
                 </div>
             </div>
         </div>
@@ -1605,8 +1604,7 @@
         integrity="sha512-FDcVY+g7vc55I8ZY0C0n8n6eB3y3o5pbhISy5hYre5q7j5tLC9h0n83gP13dKOi9frLGLDAlPpD2n1b75qZ1ew=="
         crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script src="fluid.js?v=2"></script>
-    <script src="presale.js?v=5"
-        onerror="alert('Error: Failed to load presale.js! (Try public/presale.js if using file://)')"></script>
+    <script src="presale.js?v=6"></script>
     <script src="scroll-reveal.js?v=2"></script>
 
     <!-- Particles Effect -->
