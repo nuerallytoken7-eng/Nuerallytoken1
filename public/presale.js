@@ -76,32 +76,53 @@ if (refParam && refParam.startsWith('0x')) {
     console.log("Referrer set to:", currentReferrer);
 }
 
-// DOM Elements
-const presaleOverlay = document.getElementById('presaleOverlay');
-const walletSelectionOverlay = document.getElementById('walletSelectionOverlay');
-const connectBtn = document.getElementById('connectWalletBtn');
-const mainConnectBtn = document.getElementById('presaleLink');
-const closeModalBtn = document.getElementById('closeModal');
-const closeWalletModalBtn = document.getElementById('closeWalletModal');
-const buyBtn = document.getElementById('buyBtn');
-const paymentInput = document.getElementById('paymentInput');
-const payLabel = document.getElementById('payLabel');
-const tokenOutput = document.getElementById('tokenOutput');
-const progressBar = document.getElementById('progressBar');
-const raisedDisplay = document.getElementById('raisedAmount');
-// Note: exchangeRateDisplay logic might need updating if we fetch price dynamic, but staying simple for now
+// DOM Elements - Selected dynamically to ensure they exist
+let presaleOverlay, walletSelectionOverlay, connectBtn, mainConnectBtn, closeModalBtn, closeWalletModalBtn;
+let buyBtn, paymentInput, payLabel, tokenOutput, progressBar, raisedDisplay;
 
-// Initialize
 function initPresale() {
+    console.log("initPresale started");
+
+    // Select Elements
+    presaleOverlay = document.getElementById('presaleOverlay');
+    walletSelectionOverlay = document.getElementById('walletSelectionOverlay');
+    connectBtn = document.getElementById('connectWalletBtn');
+    mainConnectBtn = document.getElementById('presaleLink');
+    closeModalBtn = document.getElementById('closeModal');
+    closeWalletModalBtn = document.getElementById('closeWalletModal');
+    buyBtn = document.getElementById('buyBtn');
+    paymentInput = document.getElementById('paymentInput');
+    payLabel = document.getElementById('payLabel');
+    tokenOutput = document.getElementById('tokenOutput');
+    progressBar = document.getElementById('progressBar');
+    raisedDisplay = document.getElementById('raisedAmount');
+
+    console.log("Main Button:", mainConnectBtn);
+    console.log("Overlay:", presaleOverlay);
+
     // Note: We don't call updateProgress here immediately because we need data first
     fetchRawData();
 
     // Main Presale Modal Triggers
     if (mainConnectBtn) {
+        // Remove old listeners if any (not strictly needed for fresh load but good practice)
+        mainConnectBtn.replaceWith(mainConnectBtn.cloneNode(true));
+        mainConnectBtn = document.getElementById('presaleLink'); // Re-select after replace
+
         mainConnectBtn.addEventListener('click', (e) => {
+            console.log("Get Early Access Clicked");
             e.preventDefault();
-            openModal(presaleOverlay);
+            if (presaleOverlay) {
+                openModal(presaleOverlay);
+                // Also ensure it's visible via direct style if CSS fails
+                presaleOverlay.style.opacity = '1';
+                presaleOverlay.style.pointerEvents = 'auto';
+            } else {
+                console.error("Presale Overlay NOT FOUND");
+            }
         });
+    } else {
+        console.error("Get Early Access Button NOT FOUND");
     }
 
     if (closeModalBtn) closeModalBtn.addEventListener('click', () => closeModal(presaleOverlay));
