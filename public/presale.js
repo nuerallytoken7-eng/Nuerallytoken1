@@ -65,7 +65,7 @@ WEB3_CONFIG.erc20Abi = [
 ];
 
 let userAddress = null;
-let currentCurrency = 'BNB'; // 'BNB' or 'USDT'
+let currentCurrency = 'USDT'; // Default to USDT
 let currentReferrer = null;
 
 // Parse URL for Referral (?ref=0x...)
