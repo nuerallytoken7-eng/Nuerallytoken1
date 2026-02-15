@@ -464,6 +464,39 @@ function onWalletConnected() {
 
     // Enable Buy Button if currency is valid
     updateCurrencyUI();
+
+    // REFERRAL LOGIC
+    const refContainer = document.getElementById('referralContainer');
+    const refInput = document.getElementById('myRefLink');
+    if (refContainer && refInput) {
+        refContainer.style.display = 'block';
+        // Construct link: origin + ?ref=ADDRESS
+        const origin = window.location.origin;
+        // Ensure no double slash if origin ends with / (rare but safe)
+        const baseUrl = origin.endsWith('/') ? origin.slice(0, -1) : origin;
+        refInput.value = `${baseUrl}/?ref=${userAddress}`;
+    }
+}
+
+// Global Copy Function
+window.copyReferral = function () {
+    const refInput = document.getElementById('myRefLink');
+    if (!refInput) return;
+
+    refInput.select();
+    refInput.setSelectionRange(0, 99999); // For mobile
+
+    // Copy to clipboard
+    navigator.clipboard.writeText(refInput.value).then(() => {
+        const btn = document.querySelector('#referralContainer button');
+        if (btn) {
+            const oldText = btn.textContent;
+            btn.textContent = "COPIED!";
+            setTimeout(() => btn.textContent = oldText, 2000);
+        }
+    }).catch(err => {
+        console.error('Failed to copy: ', err);
+    });
 }
 
 async function checkChainId() {

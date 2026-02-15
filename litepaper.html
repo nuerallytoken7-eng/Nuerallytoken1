@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NUERALLY Litepaper</title>
+    <style>
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            background: #f9f9f9;
+        }
+
+        .container {
+            background: #fff;
+            padding: 50px;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+        }
+
+        h1,
+        h2,
+        h3 {
+            color: #111;
+            font-weight: 700;
+        }
+
+        h1 {
+            margin-bottom: 10px;
+            border-bottom: 2px solid #ddd;
+            padding-bottom: 20px;
+        }
+
+        h2 {
+            margin-top: 40px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 1.2em;
+            margin-bottom: 40px;
+            font-weight: 300;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+
+        th,
+        td {
+            text-align: left;
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+        }
+
+        th {
+            background: #f5f5f5;
+            font-weight: 600;
+        }
+
+        code {
+            background: #eee;
+            padding: 2px 5px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+
+        .btn-print {
+            display: inline-block;
+            margin-bottom: 20px;
+            padding: 10px 20px;
+            background: #000;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 5px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        @media print {
+            body {
+                background: #fff;
+                padding: 0;
+            }
+
+            .container {
+                box-shadow: none;
+                padding: 0;
+            }
+
+            .btn-print {
+                display: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <button class="btn-print" onclick="window.print()">Print to PDF</button>
+
+    <div class="container">
+        <h1>NUERALLY Litepaper</h1>
+        <div class="subtitle">The Backbone of the AI Agent Economy</div>
+
+        <h2>1. Executive Summary</h2>
+        <p><strong>NUERALLY</strong> is a decentralized utility protocol designed to bridge the gap between
+            high-performance compute demand and capital efficiency. As the AI agent economy explodes, the demand for GPU
+            compute (specifically H100 clusters) has outpaced supply. NUERALLY solves this by creating a decentralized
+            marketplace where users can stake capital to fund GPU rentals for AI agents, earning "Real Yield" in USDT
+            from the revenue generated.</p>
+        <p>Unlike traditional meme tokens or speculative assets, NUERALLY is built on a <strong>revenue-first</strong>
+            model. The protocol orchestrates the rental of high-end compute infrastructure, powers autonomous AI agents,
+            and distributes the net profits directly to token stakers in stablecoin (USDT).</p>
+
+        <h2>2. Market Opportunity: The AI Compute Crunch</h2>
+        <p>The rapid rise of Large Language Models (LLMs) and autonomous agents has created an unprecedented shortage of
+            GPU compute.</p>
+        <ul>
+            <li><strong>Surging Demand:</strong> Startups and enterprises are competing for limited NVIDIA H100
+                inventory.</li>
+            <li><strong>Idle Capital:</strong> Crypto capital often sits idle or chases inflationary yields.</li>
+            <li><strong>The Gap:</strong> There is no efficient bridge connecting decentralized capital with real-world
+                compute infrastructure revenue.</li>
+        </ul>
+        <p>NUERALLY positions itself as this bridge, treating GPU compute as a real-world asset (RWA) that generates
+            verifiable cash flow.</p>
+
+        <h2>3. The Solution: NUERALLY Protocol</h2>
+        <p>The NUERALLY ecosystem is built on three core pillars designed for disciplined execution:</p>
+
+        <h3>A. AI Strategy Engine</h3>
+        <p>Automated algorithms identify high-yield opportunities in the compute market. The engine manages the leasing
+            and allocation of GPU clusters to vetted AI agents, optimizing for maximum revenue generation per compute
+            unit.</p>
+
+        <h3>B. Treasury Management</h3>
+        <p>Capital is managed at the protocol level with strict risk parameters. The treasury ensures that funds are
+            efficiently deployed to lease hardware, while maintaining a buffer for operational sustainability.</p>
+
+        <h3>C. On-Chain Distribution (Real Yield)</h3>
+        <p>Net protocol revenue is distributed monthly to stakers. Unlike inflationary staking models that pay in native
+            tokens, NUERALLY pays rewards in <strong>USDT</strong>, ensuring that stakers receive realized value, not
+            diluted paper gains.</p>
+
+        <h2>4. Tokenomics ($NUERALLY)</h2>
+        <p>The $NUERALLY token is the utility key to the ecosystem. It is required to access the staking platform and
+            participate in revenue distribution.</p>
+        <ul>
+            <li><strong>Token Name:</strong> Nuerally Token</li>
+            <li><strong>Ticker:</strong> NUERALLY</li>
+            <li><strong>Network:</strong> BNB Chain (BEP-20)</li>
+            <li><strong>Total Supply:</strong> 10,000,000,000 (10 Billion)</li>
+        </ul>
+
+        <h3>Distribution</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Allocation</th>
+                    <th>Percentage</th>
+                    <th>Amount</th>
+                    <th>Vesting/Notes</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Presale</strong></td>
+                    <td>35%</td>
+                    <td>3,500,000,000</td>
+                    <td>Public Early Access</td>
+                </tr>
+                <tr>
+                    <td><strong>Liquidity</strong></td>
+                    <td>20%</td>
+                    <td>2,000,000,000</td>
+                    <td>Locked for stability</td>
+                </tr>
+                <tr>
+                    <td><strong>Staking Rewards</strong></td>
+                    <td>20%</td>
+                    <td>2,000,000,000</td>
+                    <td>Reserved for long-term yields</td>
+                </tr>
+                <tr>
+                    <td><strong>Team</strong></td>
+                    <td>15%</td>
+                    <td>1,500,000,000</td>
+                    <td><strong>100% Burned before launch</strong></td>
+                </tr>
+                <tr>
+                    <td><strong>Marketing/Dev</strong></td>
+                    <td>10%</td>
+                    <td>1,000,000,000</td>
+                    <td>Operations & Growth</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>Utility & Deflation</h3>
+        <ol>
+            <li><strong>Staking Access:</strong> Only staked tokens earn USDT revenue shares.</li>
+            <li><strong>Buyback & Burn:</strong> A portion of protocol revenue is used to buy back $NUERALLY from the
+                open market and burn it, permanently reducing supply.</li>
+            <li><strong>Governance:</strong> (Phase 2) Token holders will vote on risk parameters and treasury
+                allocation strategies.</li>
+        </ol>
+
+        <h3>Security Features</h3>
+        <ul>
+            <li><strong>Anti-Snipe Protection:</strong> Limits on transaction size and wallet holdings during launch to
+                prevent bot manipulation.</li>
+            <li><strong>Bot Blacklist:</strong> Active monitoring and blacklisting of predatory bot addresses.</li>
+            <li><strong>Audit:</strong> Smart contracts undergo rigorous security audits.</li>
+        </ul>
+
+        <h2>5. Roadmap</h2>
+        <h3>Phase 1: Foundation (Current)</h3>
+        <ul>
+            <li>Smart Contract Development & Audit</li>
+            <li>Community Building & Socials</li>
+            <li>Presale Launch across 10 Stages</li>
+            <li>Anti-Snipe/Anti-Bot Implementation</li>
+        </ul>
+
+        <h3>Phase 2: Launch</h3>
+        <ul>
+            <li>PancakeSwap Listing</li>
+            <li>CoinGecko / CoinMarketCap Listing</li>
+            <li>First Protocol Revenue Distribution</li>
+            <li>Aggressive Marketing Campaign</li>
+        </ul>
+
+        <h3>Phase 3: Expansion</h3>
+        <ul>
+            <li>Advanced AI Strategy Implementation</li>
+            <li>DAO Governance Launch</li>
+            <li>Cross-chain Bridge Integration</li>
+            <li>Strategic Partnerships with Compute Providers</li>
+        </ul>
+
+        <h2>6. Risk Disclosure</h2>
+        <p>NUERALLY is a utility protocol, not a financial security.</p>
+        <ul>
+            <li><strong>No Guarantees:</strong> Revenue is performance-dependent and varies with market conditions for
+                compute.</li>
+            <li><strong>Technical Risk:</strong> Smart contracts, while audited, carry inherent risks.</li>
+            <li><strong>Market Risk:</strong> The value of the $NUERALLY token may fluctuate.</li>
+        </ul>
+        <p><em>Participants should conduct their own research and understand that they are interacting with a
+                decentralized protocol.</em></p>
+    </div>
+
+</body>
+
+</html>
