@@ -318,7 +318,7 @@ async function addTokenToWallet() {
         const wasAdded = await window.ethereum.request({
             method: 'wallet_watchAsset',
             params: {
-                type: 'ERC20',
+                type: 'ERC20', // Initially only supports ERC20, but some wallets may support others
                 options: {
                     address: tokenAddress,
                     symbol: tokenSymbol,
