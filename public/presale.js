@@ -602,13 +602,15 @@ async function checkUSDTAllowance() {
             }
         } else {
             if (buyBtn) {
-                buyBtn.textContent = "Buy with USDT";
+                buyBtn.textContent = "Buy Now (USDT)";
                 buyBtn.onclick = buyWithUSDT;
                 buyBtn.disabled = false;
             }
         }
     } catch (e) {
         console.error("Error checking allowance:", e);
+        // Fallback or retry
+        setTimeout(checkUSDTAllowance, 3000);
     }
 }
 
