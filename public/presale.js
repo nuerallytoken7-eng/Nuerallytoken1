@@ -184,21 +184,70 @@ async function fetchRawData() {
 }
 
 function updateCurrencyUI() {
-    if (currentCurrency === 'USDT') {
-        // Change button to "Approve USDT" initially, then check allowance
-        if (buyBtn) {
-            buyBtn.textContent = 'Approve USDT';
-            buyBtn.disabled = false;
-        }
+    // FORCE USDT ONLY
+    currentCurrency = 'USDT';
+
+    // Update active class
+    if (document.querySelector('.token-selector[data-currency="BNB"]')) {
+        document.querySelector('.token-selector[data-currency="BNB"]').style.display = 'none';
+        document.querySelector('.token-selector[data-currency="USDT"]').classList.add('active');
+    }
+
+    if (payLabel) payLabel.textContent = `You Pay (USDT)`;
+
+    // Check Allowance
+    checkUSDTAllowance();
+}
+
+async function buyWithUSDT() {
+    const amountVal = parseFloat(paymentInput.value);
+
+    // MIN CHECK: 10 USDT
+    if (!amountVal || amountVal < 10) {
+        alert("Minimum purchase amount is 10 USDT.");
+        return;
+    }
+
+    const provider = new ethers.providers.Web3Provider(window.ethereum);
+    const signer = provider.getSigner();
+    const contract = new ethers.Contract(WEB3_CONFIG.contractAddress, WEB3_CONFIG.abi, signer);
+
+    try {
+        // USDT on BSC Mainnet has 18 decimals usually (Binance-Peg BSC-USD)
+        const amountWei = ethers.utils.parseUnits(amountVal.toString(), 18);
+
+        buyBtn.textContent = "Processing...";
+        buyBtn.disabled = true;
+
+        const tx = await contract.buyWithUSDT(amountWei, currentReferrer || ethers.constants.AddressZero);
+        // Alert Hash
+        alert("Transaction Sent! Hash: " + tx.hash + "\n\nPlease wait for confirmation...");
+
+        await tx.wait();
+        alert("Purchase Successful! Welcome to Nuerally.");
+
+        // Reset UI
+        paymentInput.value = "";
+        fetchRawData();
         checkUSDTAllowance();
-    } else {
-        // BNB Logic - DISABLED (User request)
-        if (buyBtn) {
-            buyBtn.textContent = 'BNB Disabled';
-            buyBtn.disabled = true;
-            buyBtn.style.background = '#ff4d4d';
-            buyBtn.style.borderColor = '#ff4d4d';
+
+    } catch (e) {
+        console.error("Buy failed", e);
+
+        let msg = e.reason || e.message;
+        if (msg.includes("user rejected")) {
+            msg = "Transaction rejected by user.";
+        } else if (msg.includes("insufficient funds")) {
+            msg = "Insufficient BNB for gas fees.";
+        } else if (msg.includes("allowance")) {
+            msg = "Please approve USDT first.";
         }
+
+        alert("Buy Failed: " + msg);
+
+        // Reset Button
+        buyBtn.disabled = false;
+        checkUSDTAllowance(); // Create correct button state
     }
 }
 
@@ -627,28 +676,4 @@ async function buyWithBNB() {
     }
 }
 
-async function buyWithUSDT() {
-    const amountVal = parseFloat(paymentInput.value);
-    if (!amountVal || amountVal <= 0) {
-        alert("Enter a valid amount");
-        return;
-    }
 
-    const provider = new ethers.providers.Web3Provider(window.ethereum);
-    const signer = provider.getSigner();
-    const contract = new ethers.Contract(WEB3_CONFIG.contractAddress, WEB3_CONFIG.abi, signer);
-
-    try {
-        // USDT on BSC Mainnet has 18 decimals usually (Binance-Peg BSC-USD)
-        const amountWei = ethers.utils.parseUnits(amountVal.toString(), 18);
-
-        const tx = await contract.buyWithUSDT(amountWei, currentReferrer || ethers.constants.AddressZero);
-        alert("Transaction Sent! Hash: " + tx.hash);
-        await tx.wait();
-        alert("Purchase Successful!");
-        fetchRawData(); // Refresh
-    } catch (e) {
-        console.error("Buy failed", e);
-        alert("Buy failed: " + (e.reason || e.message));
-    }
-}
