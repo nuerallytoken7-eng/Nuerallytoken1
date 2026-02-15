@@ -209,6 +209,16 @@ async function buyWithUSDT() {
     }
 
     const provider = new ethers.providers.Web3Provider(window.ethereum);
+    // Check BNB Balance for Gas
+    const balance = await provider.getBalance(userAddress);
+    // 0.002 BNB is approx $1.20, enough for approval + buy
+    const minGas = ethers.utils.parseEther("0.002");
+
+    if (balance.lt(minGas)) {
+        alert("Insufficient BNB for Gas Fees!\n\nYou must have at least ~$1 worth of BNB in your wallet to pay for the transaction network fee.");
+        return;
+    }
+
     const signer = provider.getSigner();
     const contract = new ethers.Contract(WEB3_CONFIG.contractAddress, WEB3_CONFIG.abi, signer);
 
