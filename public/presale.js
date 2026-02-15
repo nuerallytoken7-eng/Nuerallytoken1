@@ -314,6 +314,26 @@ async function addTokenToWallet() {
     const tokenDecimals = 18;
     const tokenImage = window.location.origin + '/assets/hero-brain.png';
 
+    // Check if window.ethereum exists
+    if (!window.ethereum) {
+        // Simple mobile detection
+        const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+        if (isMobile) {
+            // Try explicit deep link if not inside a wallet browser
+            const currentUrl = window.location.href.replace(/^https?:\/\//, '');
+            const deepLink = `https://metamask.app.link/dapp/${currentUrl}`;
+
+            if (confirm("Metamask not detected. Open this page in the MetaMask app to add the token?")) {
+                window.location.href = deepLink;
+            }
+        } else {
+            alert("MetaMask is not installed! Please install it to add the token.");
+            window.open("https://metamask.io/download/", "_blank");
+        }
+        return;
+    }
+
     try {
         const wasAdded = await window.ethereum.request({
             method: 'wallet_watchAsset',
@@ -330,11 +350,16 @@ async function addTokenToWallet() {
 
         if (wasAdded) {
             console.log('Token added!');
+            alert('NUERALLY Token added to your wallet!');
         } else {
             console.log('Token add rejected');
         }
     } catch (error) {
-        console.log(error);
+        console.error(error);
+        if (error.code === 4001) {
+            // User rejected request
+            return;
+        }
         alert("Failed to add token: " + (error.message || error));
     }
 }
