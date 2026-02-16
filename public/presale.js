@@ -679,6 +679,7 @@ async function updateBuyButtonState() {
         }
     } else {
         // USDT Logic (Check Allowance)
+        if (buyBtn) buyBtn.textContent = "Checking Allowance...";
         checkUSDTAllowance();
     }
 }
@@ -720,7 +721,12 @@ async function checkUSDTAllowance() {
     } catch (e) {
         console.error("Error checking allowance:", e);
         // Fallback or retry
-        setTimeout(checkUSDTAllowance, 3000);
+        if (buyBtn) {
+            buyBtn.textContent = "Error Checking Allowance";
+            setTimeout(() => {
+                if (buyBtn) buyBtn.textContent = "Retry Connection";
+            }, 2000);
+        }
     }
 }
 
