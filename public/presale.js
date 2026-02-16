@@ -133,6 +133,23 @@ function initPresale() {
 
     // Auto-refresh data
     setInterval(fetchRawData, 10000);
+
+    // Wallet Listeners
+    if (window.ethereum) {
+        window.ethereum.on('accountsChanged', (accounts) => {
+            if (accounts.length > 0) {
+                userAddress = accounts[0];
+                onWalletConnected();
+            } else {
+                userAddress = null;
+                window.location.reload();
+            }
+        });
+
+        window.ethereum.on('chainChanged', (_chainId) => {
+            window.location.reload();
+        });
+    }
 }
 
 async function fetchRawData() {
@@ -188,15 +205,26 @@ function updateCurrencyUI() {
     currentCurrency = 'USDT';
 
     // Update active class
+    // FORCE USDT ONLY - REMOVED TO ENABLE BNB
+    // currentCurrency = 'USDT';
+
+    // Update active class
     if (document.querySelector('.token-selector[data-currency="BNB"]')) {
-        document.querySelector('.token-selector[data-currency="BNB"]').style.display = 'none';
-        document.querySelector('.token-selector[data-currency="USDT"]').classList.add('active');
+        // Show BNB Selector
+        document.querySelector('.token-selector[data-currency="BNB"]').style.display = 'flex';
+
+        // Remove active from all first
+        document.querySelectorAll('.token-selector').forEach(el => el.classList.remove('active'));
+
+        // Add active to current
+        const activeEl = document.querySelector(`.token-selector[data-currency="${currentCurrency}"]`);
+        if (activeEl) activeEl.classList.add('active');
     }
 
-    if (payLabel) payLabel.textContent = `You Pay (USDT)`;
+    if (payLabel) payLabel.textContent = `You Pay (${currentCurrency})`;
 
-    // Check Allowance
-    checkUSDTAllowance();
+    // Update Button State
+    updateBuyButtonState();
 }
 
 async function buyWithUSDT() {
@@ -209,16 +237,6 @@ async function buyWithUSDT() {
     }
 
     const provider = new ethers.providers.Web3Provider(window.ethereum);
-    // Check BNB Balance for Gas
-    const balance = await provider.getBalance(userAddress);
-    // 0.002 BNB is approx $1.20, enough for approval + buy
-    const minGas = ethers.utils.parseEther("0.002");
-
-    if (balance.lt(minGas)) {
-        alert("Insufficient BNB for Gas Fees!\n\nYou must have at least ~$1 worth of BNB in your wallet to pay for the transaction network fee.");
-        return;
-    }
-
     const signer = provider.getSigner();
     const contract = new ethers.Contract(WEB3_CONFIG.contractAddress, WEB3_CONFIG.abi, signer);
 
@@ -584,16 +602,89 @@ window.copyReferral = function () {
 }
 
 async function checkChainId() {
+    if (!window.ethereum) return false;
     const provider = new ethers.providers.Web3Provider(window.ethereum);
     const { chainId } = await provider.getNetwork();
+
+    // Check against current config (MAINNET/TESTNET)
     if (chainId !== WEB3_CONFIG.chainId) {
-        // Warning but don't block fully if they want to read data
         console.warn(`Wrong Chain ID: ${chainId} (Expected: ${WEB3_CONFIG.chainId})`);
+        return false;
+    }
+    return true;
+}
+
+async function switchToBSC() {
+    try {
+        await window.ethereum.request({
+            method: 'wallet_switchEthereumChain',
+            params: [{ chainId: WEB3_CONFIG.chainHex }],
+        });
+        // Chain change listener will reload page
+    } catch (switchError) {
+        // This error code indicates that the chain has not been added to MetaMask.
+        if (switchError.code === 4902) {
+            try {
+                await window.ethereum.request({
+                    method: 'wallet_addEthereumChain',
+                    params: [
+                        {
+                            chainId: WEB3_CONFIG.chainHex,
+                            chainName: ENV === 'MAINNET' ? 'Binance Smart Chain' : 'BSC Testnet',
+                            rpcUrls: [WEB3_CONFIG.rpcUrl],
+                            blockExplorerUrls: [WEB3_CONFIG.blockExplorer],
+                            nativeCurrency: {
+                                name: 'BNB',
+                                symbol: 'BNB',
+                                decimals: 18
+                            }
+                        },
+                    ],
+                });
+            } catch (addError) {
+                console.error("Failed to add BSC:", addError);
+            }
+        } else {
+            console.error("Failed to switch to BSC:", switchError);
+        }
+    }
+}
+
+async function updateBuyButtonState() {
+    if (!userAddress) {
+        if (buyBtn) {
+            buyBtn.textContent = "Connect Wallet to Buy";
+            buyBtn.disabled = false;
+            buyBtn.onclick = () => openModal(walletSelectionOverlay);
+        }
+        return;
+    }
+
+    // Check Network
+    const isCorrectChain = await checkChainId();
+    if (!isCorrectChain) {
+        if (buyBtn) {
+            buyBtn.textContent = "Switch Network";
+            buyBtn.onclick = switchToBSC;
+            buyBtn.disabled = false;
+        }
+        return;
+    }
+
+    if (currentCurrency === 'BNB') {
+        if (buyBtn) {
+            buyBtn.textContent = "Buy Now (BNB)";
+            buyBtn.onclick = buyWithBNB;
+            buyBtn.disabled = false;
+        }
+    } else {
+        // USDT Logic (Check Allowance)
+        checkUSDTAllowance();
     }
 }
 
 async function checkUSDTAllowance() {
-    if (!userAddress) return;
+    if (!userAddress || currentCurrency !== 'USDT') return;
 
     const provider = new ethers.providers.Web3Provider(window.ethereum);
     const signer = provider.getSigner();
@@ -602,9 +693,18 @@ async function checkUSDTAllowance() {
 
     try {
         const allowance = await usdtContract.allowance(userAddress, WEB3_CONFIG.contractAddress);
-        const amount = ethers.utils.parseUnits("1000000000", 18); // Check large enough allowance
+        // Check if allowance is enough for the current input amount, or just check generic large amount
+        // ideally we check against input amount, but specific amount check causes UI flickering if input changes
+        // so we check if > 0 basically or > some threshold. 
+        // For simplicity, let's check if it's > 0. If 0, approve. 
+        // Better: Check if allowance < VERY_LARGE_NUMBER. 
+        // Actually, best is to check against a minimum safe amount or the input amount.
+        // Let's stick to the existing logic of checking against 1000000000 for now to minimize risk, 
+        // but arguably we should check against input. 
 
-        if (allowance.lt(amount)) {
+        const amountToCheck = ethers.utils.parseUnits("1000000000", 18);
+
+        if (allowance.lt(amountToCheck)) {
             if (buyBtn) {
                 buyBtn.textContent = "Approve USDT";
                 buyBtn.onclick = approveUSDT;
@@ -635,7 +735,7 @@ async function approveUSDT() {
         buyBtn.disabled = true;
         const tx = await usdtContract.approve(WEB3_CONFIG.contractAddress, ethers.constants.MaxUint256);
         await tx.wait();
-        checkUSDTAllowance();
+        updateBuyButtonState(); // Re-check logic
     } catch (e) {
         console.error("Approve failed", e);
         buyBtn.textContent = "Approve Failed";
@@ -650,7 +750,7 @@ async function handleBuy() {
     }
 
     if (currentCurrency === 'BNB') {
-        alert("BNB sales are currently disabled. Please use USDT.");
+        buyWithBNB();
     } else {
         // Should have been overridden by checkUSDTAllowance if connected, but fallback:
         checkUSDTAllowance();
