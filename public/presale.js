@@ -24,9 +24,9 @@ const VALID_CHAINS = {
 
 const CONFIG = {
     MAINNET: {
-        contractAddress: "0x7dC1787D85b871c76E446690b9acba3Baa45638A",
+        contractAddress: "0xD3D92Ce27F4845DA867c55da11b350D134fd09B1",
         usdtAddress: "0x55d398326f99059fF775485246999027B3197955", // Binance-Peg BSC-USD
-        tokenAddress: "0xc63a84c9AF74902A872472bb0eE9Ae98e18810aD",
+        tokenAddress: "0x0399b646d251F18edefB36DDC581597ABfDcA070",
         chainId: 56,
         chainHex: "0x38",
         rpcUrl: "https://bsc-dataseed.binance.org/",

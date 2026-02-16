@@ -226,4 +226,8 @@ contract NuerallyPresale is Ownable, ReentrancyGuard {
     function setMarketingWallet(address _wallet) external onlyOwner {
         marketingWallet = _wallet;
     }
+
+    function setPriceFeed(address _priceFeed) external onlyOwner {
+        priceFeed = AggregatorV3Interface(_priceFeed);
+    }
 }

@@ -107,7 +107,7 @@ async function main() {
         if (network === "bscTestnet") {
             oracleAddress = "0x2514895c72f50D8bd4B4F9b1110F0D6bD2c97526";
         } else {
-            oracleAddress = "0x0567f2323251F0aaB15fC0bd16f0F5D30716422b";
+            oracleAddress = "0x776798F1193714bd06118d773e47534D1e958d78";
         }
 
         // 3. Deploy Presale
