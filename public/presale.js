@@ -224,6 +224,18 @@ function updateCurrencyUI() {
     if (payLabel) payLabel.textContent = `You Pay (${currentCurrency})`;
 
     // Update Button State
+    if (currentCurrency === 'BNB') {
+        if (buyBtn) {
+            buyBtn.textContent = "Buy Now (BNB)";
+            buyBtn.onclick = buyWithBNB;
+            buyBtn.disabled = false;
+        }
+    } else {
+        if (buyBtn) {
+            buyBtn.textContent = "Checking Allowance...";
+            buyBtn.disabled = true;
+        }
+    }
     updateBuyButtonState();
 }
 
@@ -694,6 +706,10 @@ async function checkUSDTAllowance() {
 
     try {
         const allowance = await usdtContract.allowance(userAddress, WEB3_CONFIG.contractAddress);
+
+        // RACE CONDITION FIX: Ensure we are still on USDT
+        if (currentCurrency !== 'USDT') return;
+
         // Check if allowance is enough for the current input amount, or just check generic large amount
         // ideally we check against input amount, but specific amount check causes UI flickering if input changes
         // so we check if > 0 basically or > some threshold. 
@@ -777,14 +793,33 @@ async function buyWithBNB() {
     try {
         const amountWei = ethers.utils.parseEther(amountVal.toString());
 
+        if (buyBtn) {
+            buyBtn.textContent = "Processing...";
+            buyBtn.disabled = true;
+        }
+
         // Note: usage of referrer
         const tx = await contract.buyWithBNB(currentReferrer || ethers.constants.AddressZero, { value: amountWei });
         alert("Transaction Sent! Hash: " + tx.hash);
         await tx.wait();
         alert("Purchase Successful!");
         fetchRawData();
+
+        // Reset button
+        if (buyBtn) {
+            buyBtn.textContent = "Buy Now (BNB)";
+            buyBtn.disabled = false;
+        }
     } catch (e) {
         console.error("BNB Buy failed", e);
+
+        // Reset button
+        if (buyBtn) {
+            buyBtn.textContent = "Buy Now (BNB)";
+            buyBtn.disabled = false;
+        }
+
+        // Specialized error message for the known Oracle issue
         // Specialized error message for the known Oracle issue
         if (e.message && (e.message.includes("revert") || e.message.includes("execution reverted"))) {
             alert("Transaction Failed (Contract Logic). \n\nIMPORTANT: Use USDT if BNB fails (Mainnet Oracle maintenance).");
