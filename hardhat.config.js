@@ -19,7 +19,7 @@ module.exports = {
         },
         // Mainnet (For later)
         bsc: {
-            url: "https://bsc-dataseed1.binance.org/",
+            url: "https://bsc-dataseed1.defibit.io/",
             chainId: 56,
             accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
         }

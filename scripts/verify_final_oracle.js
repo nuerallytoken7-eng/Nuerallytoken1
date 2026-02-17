@@ -7,7 +7,6 @@ const RPC_URL = "https://1rpc.io/bnb";
 // Candidates
 // From search: 0x05672A29B036f06a1240f53139C4e6504a252aeE
 const ADDR_05672 = "0x05672A29B036f06a1240f53139C4e6504a252aeE";
-const ADDR_7767 = "0x776798F1193714bd06118d773e47534D1e958d78";
 
 const ABI = [
     "function description() view returns (string)",
@@ -50,8 +49,7 @@ async function check(address, name) {
 }
 
 async function main() {
-    await check(ADDR_05672, "New Candidate 05672");
-    await check(ADDR_7767, "Old Candidate 7767");
+    await check(ADDR_05672, "Candidate 05672");
 }
 
 main();

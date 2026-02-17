@@ -1562,6 +1562,21 @@
                 </div>
             </div>
             <button id="buyBtn" class="action-btn" disabled>Connect Wallet to Buy</button>
+
+            <!-- CLAIM SECTION (NEW) -->
+            <div id="claimSection"
+                style="display:none; margin-top: 20px; border-top: 1px dashed rgba(255,255,255,0.2); padding-top: 15px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 10px;">
+                    <span style="color:var(--muted); font-size:13px;">Your Purchased Tokens:</span>
+                    <span id="userPurchased" style="color:#fff; font-weight:bold;">0.00</span>
+                </div>
+                <button id="claimBtn" class="action-btn"
+                    style="background: linear-gradient(135deg, #26A17B, #1F8E6B); border-color: #26A17B;"
+                    onclick="window.claimTokens()">
+                    Claim Tokens
+                </button>
+                <p id="claimStatus" style="font-size:11px; color:var(--muted); text-align:center; margin-top:5px;"></p>
+            </div>
         </div>
 
         <!-- REFERRAL LINK DISPLAY -->
@@ -1583,6 +1598,15 @@
     </div>
 
     <!-- Wallet Selection Modal -->
+
+    <!-- DEBUG SECTION -->
+    <div style="margin-top:20px; text-align:center; border-top:1px solid #333; padding-top:10px;">
+        <p style="font-size:10px; color:#666; margin-bottom:5px;">Trouble finding your purchase?</p>
+        <button onclick="window.debugFindPurchase()" class="btn btn-ghost" style="font-size:11px; padding:4px 8px;">
+            🔍 Deep Scan for Lost Purchase
+        </button>
+        <div id="debugResult" style="font-size:11px; color:#fff; margin-top:5px; word-break:break-all;"></div>
+    </div>
     <div class="presale-overlay" id="walletSelectionOverlay">
         <div class="presale-modal" style="max-width: 360px;">
             <div class="modal-header">

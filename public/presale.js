@@ -579,6 +579,9 @@ function onWalletConnected() {
     // Enable Buy Button if currency is valid
     updateCurrencyUI();
 
+    // Update Claim UI
+    updateClaimUI();
+
     // REFERRAL LOGIC
     const refContainer = document.getElementById('referralContainer');
     const refInput = document.getElementById('myRefLink');
@@ -830,3 +833,204 @@ async function buyWithBNB() {
 }
 
 
+// --- CLAIM LOGIC ---
+
+async function updateClaimUI() {
+    if (!userAddress) return;
+
+    // Elements
+    const claimSection = document.getElementById('claimSection');
+    const userPurchased = document.getElementById('userPurchased');
+    const claimBtn = document.getElementById('claimBtn');
+    const claimStatus = document.getElementById('claimStatus');
+
+    if (!claimSection) return;
+
+    try {
+        // USE READ-ONLY RPC to ensure we see data even if wallet is on wrong network
+        const provider = new ethers.providers.JsonRpcProvider(WEB3_CONFIG.rpcUrl);
+        const contract = new ethers.Contract(WEB3_CONFIG.contractAddress, WEB3_CONFIG.abi, provider);
+
+        // 1. Get Purchased Amount
+        const purchased = await contract.purchasedTokens(userAddress);
+        const purchasedFormatted = ethers.utils.formatEther(purchased);
+
+        // 2. Get Claiming Status
+        const claimingEnabled = await contract.claimingEnabled();
+
+        console.log(`Claimable: ${purchasedFormatted}, Enabled: ${claimingEnabled}`);
+
+        if (parseFloat(purchasedFormatted) > 0) {
+            claimSection.style.display = 'block';
+            userPurchased.textContent = parseFloat(purchasedFormatted).toLocaleString() + " NUERALLY";
+
+            if (claimingEnabled) {
+                claimBtn.disabled = false;
+                claimBtn.textContent = "Claim Tokens";
+                claimStatus.textContent = "Ready to claim.";
+                claimStatus.style.color = "var(--ok)";
+
+                // Add explicit network check to button click
+                claimBtn.onclick = async () => {
+                    const isCorrect = await checkChainId();
+                    if (!isCorrect) {
+                        await switchToBSC();
+                        return;
+                    }
+                    window.claimTokens();
+                };
+
+            } else {
+                claimBtn.disabled = true;
+                claimBtn.textContent = "Claiming Not Live";
+                claimStatus.textContent = "Claiming will be enabled soon.";
+                claimStatus.style.color = "var(--warn)";
+            }
+        } else {
+            claimSection.style.display = 'block'; // ALWAYS VISIBLE
+            userPurchased.textContent = "0.00 NUERALLY";
+            claimBtn.disabled = true;
+            claimBtn.textContent = "No Tokens to Claim";
+            claimStatus.textContent = "Purchase tokens first.";
+            claimStatus.style.color = "var(--muted)";
+        }
+    } catch (e) {
+        console.error("Error updating claim UI:", e);
+        // Fallback: Show section but indicate error
+        claimSection.style.display = 'block';
+        if (userPurchased) userPurchased.textContent = "Network Error";
+        if (claimBtn) {
+            claimBtn.disabled = true;
+            claimBtn.textContent = "Connection Failed";
+        }
+        if (claimStatus) {
+            claimStatus.textContent = "Could not fetch claim data. RPC might be busy.";
+            claimStatus.style.color = "var(--warn)";
+        }
+    }
+}
+
+window.claimTokens = async function () {
+    if (!userAddress) return;
+    const claimBtn = document.getElementById('claimBtn');
+
+    try {
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        const signer = provider.getSigner();
+        const contract = new ethers.Contract(WEB3_CONFIG.contractAddress, WEB3_CONFIG.abi, signer);
+
+        claimBtn.textContent = "Claiming...";
+        claimBtn.disabled = true;
+
+        const tx = await contract.claim();
+        alert("Claim Transaction Sent! Hash: " + tx.hash);
+        await tx.wait();
+
+        alert("Tokens Claimed Successfully! Check your wallet.");
+        updateClaimUI(); // Refresh
+
+    } catch (e) {
+        console.error("Claim failed:", e);
+        alert("Claim failed: " + (e.reason || e.message));
+        claimBtn.disabled = false;
+        claimBtn.textContent = "Claim Tokens";
+    }
+}
+
+// --- DEBUG LOGIC ---
+window.debugFindPurchase = async function () {
+    const debugResult = document.getElementById('debugResult');
+    const btn = document.querySelector('button[onclick="window.debugFindPurchase()"]');
+
+    // Check if ethereum is available
+    if (!window.ethereum) {
+        if (debugResult) debugResult.textContent = "Error: No Wallet Found";
+        alert("No Wallet Found. Please install MetaMask.");
+        return;
+    }
+
+    try {
+        if (btn) {
+            btn.disabled = true;
+            btn.textContent = "Scanning... (Please Wait)";
+        }
+        if (debugResult) debugResult.textContent = "Initializing Scan...";
+
+        // Request connection if not connected (needed for read? maybe not, but good to have)
+        await window.ethereum.request({ method: 'eth_requestAccounts' });
+
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        const presaleAddress = WEB3_CONFIG.contractAddress;
+
+        // Topic 0 for TokensPurchased
+        const topic0 = ethers.utils.id("TokensPurchased(address,uint256,uint256,string)");
+
+        const currentBlock = await provider.getBlockNumber();
+        const fromBlock = Math.max(0, currentBlock - 5000); // Last 5000 blocks
+
+        if (debugResult) debugResult.textContent = `Scanning blocks ${fromBlock} to ${currentBlock}...`;
+
+        const logs = await provider.getLogs({
+            fromBlock: fromBlock,
+            toBlock: currentBlock,
+            address: presaleAddress,
+            topics: [topic0]
+        });
+
+        if (logs.length === 0) {
+            if (debugResult) debugResult.textContent = "No recent purchases found.";
+            if (btn) {
+                btn.textContent = "Scan Again";
+                btn.disabled = false;
+            }
+            return;
+        }
+
+        let msg = `Found ${logs.length} Purchases:\n`;
+        let foundMatch = false;
+
+        for (const log of logs) {
+            const parsed = new ethers.utils.Interface([
+                "event TokensPurchased(address indexed buyer, uint256 amount, uint256 cost, string currency)"
+            ]).parseLog(log);
+
+            const cost = ethers.utils.formatEther(parsed.args.cost);
+            const buyer = parsed.args.buyer;
+            const amount = ethers.utils.formatEther(parsed.args.amount);
+
+            // Highlight the 20 USDT one
+            if (Math.abs(parseFloat(cost) - 20.0) < 0.1) {
+                foundMatch = true;
+                msg = `🎯 MATCH FOUND!\nBuyer: ${buyer}\nAmount: ${amount} NUERALLY\n\n(This address has the tokens!)`;
+
+                alert(`FOUND IT!\n\nBuyer: ${buyer}\nAmount: ${amount} NUERALLY\n\nIf this is NOT you, please copy this address and send it to support.`);
+
+                if (debugResult) {
+                    debugResult.style.color = "#43ffa8"; // Green
+                    debugResult.innerText = `MATCH FOUND: ${buyer}`;
+                }
+                if (btn) btn.textContent = "Scan Complete";
+                console.log("MATCH FOUND:", buyer);
+                return;
+            }
+        }
+
+        if (!foundMatch) {
+            msg = "Found purchases but NOT the 20 USDT one.";
+        }
+
+        if (debugResult) debugResult.innerText = msg;
+        if (btn) {
+            btn.textContent = "Scan Complete";
+            btn.disabled = false;
+        }
+
+    } catch (e) {
+        console.error(e);
+        if (debugResult) debugResult.textContent = "Scan Failed: " + (e.message || "RPC Error");
+        if (btn) {
+            btn.textContent = "Retry Scan";
+            btn.disabled = false;
+        }
+    }
+}

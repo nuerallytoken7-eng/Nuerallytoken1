@@ -4,11 +4,11 @@ async function main() {
     const [deployer] = await hre.ethers.getSigners();
     console.log("Distributing supply from account:", deployer.address);
 
-    // CONTRACT ADDRESSES (From Mainnet Deployment)
-    const TOKEN_ADDRESS = "0xc63a84c9AF74902A872472bb0eE9Ae98e18810aD";
-    const PRESALE_ADDRESS = "0x7dC1787D85b871c76E446690b9acba3Baa45638A";
-    const STAKING_ADDRESS = "0x3FeD5E95197B49afB47C7F1148e9fcb2b20CC2e9";
-    const VESTING_ADDRESS = "0x6EE8D8fC4707605DaEeade2F178B142390c4F25d";
+    // CONTRACT ADDRESSES (From Mainnet Deployment V2)
+    const TOKEN_ADDRESS = "0x0399b646d251F18edefB36DDC581597ABfDcA070";
+    const PRESALE_ADDRESS = "0xD3D92Ce27F4845DA867c55da11b350D134fd09B1";
+    const STAKING_ADDRESS = "0x38B8619e467679840D27E5b47912D2bd4aB1c538";
+    const VESTING_ADDRESS = "0x420E64E092Dd393cC715b99Ce917C063661fcd36";
 
     // Amounts
     const PRESALE_AMOUNT = "3500000000"; // 3.5 Billion
