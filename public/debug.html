@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RPC Debugger</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
+    <style>
+        body {
+            font-family: monospace;
+            background: #111;
+            color: #0f0;
+            padding: 20px;
+        }
+
+        .success {
+            color: #0f0;
+        }
+
+        .error {
+            color: #f00;
+        }
+
+        .warning {
+            color: #ff0;
+        }
+
+        .log-entry {
+            margin-bottom: 5px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 2px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>BSC RPC Connection Debugger</h1>
+    <div id="logs"></div>
+
+    <script>
+        const RPC_URLS = [
+            "https://bsc-dataseed.binance.org/",
+            "https://bsc-dataseed1.defibit.io/",
+            "https://bsc-dataseed1.ninicoin.io/",
+            "https://bsc.publicnode.com"
+        ];
+
+        const CONTRACT_ADDRESS = "0xD3D92Ce27F4845DA867c55da11b350D134fd09B1";
+        const ABI = ["function claimingEnabled() public view returns (bool)"];
+
+        function log(msg, type = 'normal') {
+            const div = document.createElement('div');
+            div.className = `log-entry ${type}`;
+            div.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            document.getElementById('logs').appendChild(div);
+        }
+
+        async function testRPC(url) {
+            log(`Testing RPC: ${url}`, 'warning');
+            try {
+                const provider = new ethers.providers.JsonRpcProvider(url);
+
+                // 1. Check Network
+                const start = Date.now();
+                const network = await provider.getNetwork();
+                const latency = Date.now() - start;
+                log(`  ✅ Connected to Chain ID: ${network.chainId} (${latency}ms)`, 'success');
+
+                // 2. Check Contract Access
+                const contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, provider);
+                const isEnabled = await contract.claimingEnabled();
+                log(`  ✅ Contract Read Success: claimingEnabled = ${isEnabled}`, 'success');
+
+                return true;
+            } catch (e) {
+                log(`  ❌ FAILED: ${e.message}`, 'error');
+                console.error(e);
+                return false;
+            }
+        }
+
+        async function runTests() {
+            log("Starting Connectivity Tests...");
+            let successCount = 0;
+
+            for (const url of RPC_URLS) {
+                const success = await testRPC(url);
+                if (success) successCount++;
+                log("---");
+            }
+
+            if (successCount > 0) {
+                log(`SUMMARY: ${successCount}/${RPC_URLS.length} RPCs are working.`, 'success');
+            } else {
+                log("SUMMARY: ALL RPCs FAILED. This suggests a network or CORS issue.", 'error');
+            }
+        }
+
+        runTests();
+    </script>
+</body>
+
+</html>

@@ -29,21 +29,38 @@ const CONFIG = {
         tokenAddress: "0x0399b646d251F18edefB36DDC581597ABfDcA070",
         chainId: 56,
         chainHex: "0x38",
-        rpcUrl: "https://bsc-dataseed.binance.org/",
+        rpcUrls: [
+            "https://bsc-dataseed.binance.org/",
+            "https://bsc-dataseed1.defibit.io/",
+            "https://bsc-dataseed1.ninicoin.io/",
+            "https://bsc.publicnode.com"
+        ],
         blockExplorer: "https://bscscan.com"
     },
     TESTNET: {
-        contractAddress: "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9", // Local Hardhat Deployment
-        usdtAddress: "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512", // Local MockUSDT
-        tokenAddress: "0x5FbDB2315678afecb367f032d93F642f64180aa3", // Local Token Address
-        chainId: 1337, // Defaulting to Local for now to keep it working
+        contractAddress: "0x6EE8D8fC4707605DaEeade2F178B142390c4F25d",
+        usdtAddress: "0x7546676b5F8b21767C649352fbF202B7Ac7476d4",
+        tokenAddress: "0x7dC1787D85b871c76E446690b9acba3Baa45638A",
+        chainId: 97,
+        chainHex: "0x61",
+        rpcUrls: ["https://data-seed-prebsc-1-s1.binance.org:8545/"],
+        blockExplorer: "https://testnet.bscscan.com"
+    },
+    LOCAL: {
+        contractAddress: "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9",
+        usdtAddress: "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
+        tokenAddress: "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+        chainId: 1337,
         chainHex: "0x539",
-        rpcUrl: "http://127.0.0.1:8545/",
-        blockExplorer: "http://localhost"
+        rpcUrls: ["http://127.0.0.1:8545/"],
+        blockExplorer: "http://localhost/"
     }
 };
 
 const WEB3_CONFIG = CONFIG[ENV];
+
+// Fallback for single RPCUrl legacy usage
+WEB3_CONFIG.rpcUrl = WEB3_CONFIG.rpcUrls[0];
 
 // Shared ABIs
 WEB3_CONFIG.abi = [
@@ -55,7 +72,11 @@ WEB3_CONFIG.abi = [
     "function getLatestPrice() public view returns (uint256)",
     "function totalRaisedBNB() public view returns (uint256)",
     "function getReferralPercent() public view returns (uint256)",
-    "function STAGE_ALLOCATION() public view returns (uint256)"
+    "function STAGE_ALLOCATION() public view returns (uint256)",
+    "function purchasedTokens(address user) public view returns (uint256)",
+    "function claimingEnabled() public view returns (bool)",
+    "function claim() public",
+    "function referralEarnings(address user) public view returns (uint256)"
 ];
 
 WEB3_CONFIG.erc20Abi = [
@@ -63,6 +84,149 @@ WEB3_CONFIG.erc20Abi = [
     "function allowance(address owner, address spender) public view returns (uint256)",
     "function balanceOf(address account) public view returns (uint256)"
 ];
+
+// Helper: Get Robust Provider or Null
+// Tries multiple RPCs. If all fail, returns null (doesn't throw).
+async function getRobustProvider() {
+    for (const url of WEB3_CONFIG.rpcUrls) {
+        try {
+            const provider = new ethers.providers.JsonRpcProvider(url);
+            await provider.getNetwork(); // Test connection
+            console.log("Connected to RPC:", url);
+            return provider;
+        } catch (e) {
+            console.warn("RPC Failed:", url, e.message);
+        }
+    }
+    console.error("All Public RPCs Failed.");
+    return null;
+}
+
+// ... (existing code) ...
+
+async function updateClaimUI() {
+    if (!userAddress) return;
+
+    // Elements
+    const claimSection = document.getElementById('claimSection');
+    const userPurchased = document.getElementById('userPurchased');
+    const claimBtn = document.getElementById('claimBtn');
+    const claimStatus = document.getElementById('claimStatus');
+
+    if (!claimSection) return;
+
+    let provider = await getRobustProvider();
+    let isWalletProvider = false;
+
+    // FALLBACK STRATEGY: If Public RPCs fail, try using the Wallet
+    if (!provider) {
+        if (window.ethereum) {
+            console.log("Public RPCs failed. Falling back to Wallet Provider...");
+            const walletProvider = new ethers.providers.Web3Provider(window.ethereum);
+            const network = await walletProvider.getNetwork();
+
+            // Check if wallet is on correct network
+            if (network.chainId === WEB3_CONFIG.chainId) {
+                provider = walletProvider;
+                isWalletProvider = true;
+            } else {
+                // WALLET IS ON WRONG NETWORK and Public RPCs failed.
+                // We cannot read data. We must ask user to switch.
+                claimSection.style.display = 'block';
+                if (userPurchased) userPurchased.textContent = "Network Sync Needed";
+                if (claimBtn) {
+                    claimBtn.disabled = false; // Enable click
+                    claimBtn.textContent = "Switch Network to Check";
+                    claimBtn.onclick = switchToBSC; // Direct switch action
+                }
+                if (claimStatus) {
+                    claimStatus.textContent = "Public connections failed. Please switch network to view claimable tokens.";
+                    claimStatus.style.color = "var(--warn)";
+                }
+                return; // Stop here, wait for switch
+            }
+        } else {
+            // No Wallet AND No Public RPC
+            // Show catastrophe error
+        }
+    }
+
+    if (!provider) {
+        // Final Error State (No suitable provider found)
+        claimSection.style.display = 'block';
+        if (userPurchased) userPurchased.textContent = "Connection Failed";
+        if (claimBtn) {
+            claimBtn.disabled = true;
+            claimBtn.textContent = "Network Error";
+        }
+        if (claimStatus) {
+            claimStatus.textContent = "Could not connect to BSC. Please check your internet or VPN.";
+            claimStatus.style.color = "var(--warn)";
+        }
+        return;
+    }
+
+    try {
+        const contract = new ethers.Contract(WEB3_CONFIG.contractAddress, WEB3_CONFIG.abi, provider);
+
+        // 1. Get Purchased Amount
+        const purchased = await contract.purchasedTokens(userAddress);
+        const purchasedFormatted = ethers.utils.formatEther(purchased);
+
+        // 2. Get Claiming Status
+        const claimingEnabled = await contract.claimingEnabled();
+
+        console.log(`Claimable: ${purchasedFormatted}, Enabled: ${claimingEnabled}`);
+
+        if (parseFloat(purchasedFormatted) > 0) {
+            claimSection.style.display = 'block';
+            userPurchased.textContent = parseFloat(purchasedFormatted).toLocaleString() + " NUERALLY";
+
+            if (claimingEnabled) {
+                claimBtn.disabled = false;
+                claimBtn.textContent = "Claim Tokens";
+                claimStatus.textContent = "Ready to claim.";
+                claimStatus.style.color = "var(--ok)";
+
+                // Add explicit network check to button click
+                claimBtn.onclick = async () => {
+                    const isCorrect = await checkChainId();
+                    if (!isCorrect) {
+                        await switchToBSC();
+                        return;
+                    }
+                    window.claimTokens();
+                };
+
+            } else {
+                claimBtn.disabled = true;
+                claimBtn.textContent = "Claiming Not Live";
+                claimStatus.textContent = "Claiming will be enabled soon.";
+                claimStatus.style.color = "var(--warn)";
+            }
+        } else {
+            claimSection.style.display = 'block'; // ALWAYS VISIBLE
+            userPurchased.textContent = "0.00 NUERALLY";
+            claimBtn.disabled = true;
+            claimBtn.textContent = "No Tokens to Claim";
+            claimStatus.textContent = "Purchase tokens first.";
+            claimStatus.style.color = "var(--muted)";
+        }
+    } catch (e) {
+        console.error("Error updating claim UI:", e);
+        // Fallback: Show section but indicate error
+        claimSection.style.display = 'block';
+        if (userPurchased) userPurchased.textContent = "Network Error";
+        if (claimBtn) {
+            claimBtn.disabled = true;
+            claimBtn.textContent = "Connection Failed";
+        }
+        if (claimStatus) {
+            claimStatus.textContent = `Error: ${e.message || "Unknown RPC Error"}`;
+            claimStatus.style.color = "var(--warn)";
+        }
+    }
+}
 
 let userAddress = null;
 let currentCurrency = 'USDT'; // Default to USDT
@@ -155,7 +319,27 @@ function initPresale() {
 async function fetchRawData() {
     console.log("Fetching presale data...");
     try {
-        const provider = new ethers.providers.JsonRpcProvider(WEB3_CONFIG.rpcUrl);
+        let provider = await getRobustProvider();
+
+        // Fallback: If Public RPCs fail, try Wallet Provider (if on correct chain)
+        if (!provider && window.ethereum) {
+            try {
+                const walletProvider = new ethers.providers.Web3Provider(window.ethereum);
+                const network = await walletProvider.getNetwork();
+                if (network.chainId === WEB3_CONFIG.chainId) {
+                    console.log("Falling back to Wallet Provider for data fetch");
+                    provider = walletProvider;
+                }
+            } catch (err) {
+                console.warn("Wallet fallback check failed:", err);
+            }
+        }
+
+        if (!provider) {
+            console.warn("No provider available. Skipping data fetch.");
+            return;
+        }
+
         const contract = new ethers.Contract(WEB3_CONFIG.contractAddress, WEB3_CONFIG.abi, provider);
 
         // Fetch Data
@@ -270,6 +454,8 @@ async function buyWithUSDT() {
         paymentInput.value = "";
         fetchRawData();
         checkUSDTAllowance();
+        updateClaimUI(); // Explicitly update user balance immediately
+        updateReferralEarnings();
 
     } catch (e) {
         console.error("Buy failed", e);
@@ -592,6 +778,9 @@ function onWalletConnected() {
         // Ensure no double slash if origin ends with / (rare but safe)
         const baseUrl = origin.endsWith('/') ? origin.slice(0, -1) : origin;
         refInput.value = `${baseUrl}/?ref=${userAddress}`;
+
+        // Update Earnings
+        updateReferralEarnings();
     }
 }
 
@@ -614,6 +803,36 @@ window.copyReferral = function () {
     }).catch(err => {
         console.error('Failed to copy: ', err);
     });
+}
+
+async function updateReferralEarnings() {
+    if (!userAddress) return;
+    const earningsEl = document.getElementById('referralEarnings');
+    if (!earningsEl) return;
+
+    try {
+        let provider = await getRobustProvider();
+
+        // Try to use wallet provider if available and on correct chain for better consistency
+        if (window.ethereum) {
+            const walletProvider = new ethers.providers.Web3Provider(window.ethereum);
+            const network = await walletProvider.getNetwork();
+            if (network.chainId === WEB3_CONFIG.chainId) {
+                provider = walletProvider;
+            }
+        }
+
+        if (!provider) return;
+
+        const contract = new ethers.Contract(WEB3_CONFIG.contractAddress, WEB3_CONFIG.abi, provider);
+        const earnings = await contract.referralEarnings(userAddress);
+        const earningsFormatted = ethers.utils.formatEther(earnings);
+
+        earningsEl.textContent = `${parseFloat(earningsFormatted).toLocaleString()} NUERALLY`;
+    } catch (e) {
+        console.error("Error fetching referral earnings:", e);
+        earningsEl.textContent = "Error";
+    }
 }
 
 async function checkChainId() {
@@ -640,27 +859,36 @@ async function switchToBSC() {
         // This error code indicates that the chain has not been added to MetaMask.
         if (switchError.code === 4902) {
             try {
+                // Determine correctly formatted parameters
+                const chainName = ENV === 'MAINNET' ? 'Binance Smart Chain'
+                    : ENV === 'TESTNET' ? 'BSC Testnet'
+                        : 'Localhost 8545';
+
+                const symbol = ENV === 'LOCAL' ? 'ETH' : 'BNB';
+
                 await window.ethereum.request({
                     method: 'wallet_addEthereumChain',
                     params: [
                         {
                             chainId: WEB3_CONFIG.chainHex,
-                            chainName: ENV === 'MAINNET' ? 'Binance Smart Chain' : 'BSC Testnet',
-                            rpcUrls: [WEB3_CONFIG.rpcUrl],
+                            chainName: chainName,
+                            rpcUrls: WEB3_CONFIG.rpcUrls, // Use the array directly
                             blockExplorerUrls: [WEB3_CONFIG.blockExplorer],
                             nativeCurrency: {
-                                name: 'BNB',
-                                symbol: 'BNB',
+                                name: symbol,
+                                symbol: symbol,
                                 decimals: 18
                             }
                         },
                     ],
                 });
             } catch (addError) {
-                console.error("Failed to add BSC:", addError);
+                console.error("Failed to add Network:", addError);
+                alert("Failed to add network to MetaMask. Please add specifically:\nRPC: " + WEB3_CONFIG.rpcUrls[0] + "\nChain ID: " + WEB3_CONFIG.chainId);
             }
         } else {
-            console.error("Failed to switch to BSC:", switchError);
+            console.error("Failed to switch network:", switchError);
+            alert("Failed to switch network: " + switchError.message);
         }
     }
 }
@@ -807,6 +1035,7 @@ async function buyWithBNB() {
         await tx.wait();
         alert("Purchase Successful!");
         fetchRawData();
+        updateClaimUI(); // Explicitly update user balance immediately
 
         // Reset button
         if (buyBtn) {
@@ -847,8 +1076,8 @@ async function updateClaimUI() {
     if (!claimSection) return;
 
     try {
-        // USE READ-ONLY RPC to ensure we see data even if wallet is on wrong network
-        const provider = new ethers.providers.JsonRpcProvider(WEB3_CONFIG.rpcUrl);
+        // USE READ-ONLY RPC with fallback
+        const provider = await getRobustProvider();
         const contract = new ethers.Contract(WEB3_CONFIG.contractAddress, WEB3_CONFIG.abi, provider);
 
         // 1. Get Purchased Amount
@@ -904,7 +1133,8 @@ async function updateClaimUI() {
             claimBtn.textContent = "Connection Failed";
         }
         if (claimStatus) {
-            claimStatus.textContent = "Could not fetch claim data. RPC might be busy.";
+            // Show detailed error for debugging
+            claimStatus.textContent = `Error: ${e.message || "Unknown RPC Error"}`;
             claimStatus.style.color = "var(--warn)";
         }
     }
@@ -936,6 +1166,164 @@ window.claimTokens = async function () {
         claimBtn.textContent = "Claim Tokens";
     }
 }
+
+// --- MOCK USDT FAUCET (LOCAL & TESTNET) ---
+if (false) { // HIDDEN AS PER REQUEST
+    const container = document.createElement('div');
+    container.style.position = "fixed";
+    container.style.bottom = "20px";
+    container.style.left = "20px";
+    container.style.zIndex = "9999";
+    container.style.display = "flex";
+    container.style.flexDirection = "column";
+    container.style.gap = "10px";
+
+    // Mint Button
+    const mintBtn = document.createElement('button');
+    mintBtn.innerText = "🛠 Mint 1000 Test USDT";
+    Object.assign(mintBtn.style, {
+        padding: "10px 15px",
+        background: "#FFC107",
+        color: "#000",
+        border: "none",
+        borderRadius: "8px",
+        fontWeight: "bold",
+        cursor: "pointer"
+    });
+    mintBtn.onclick = async () => {
+        if (!userAddress) return alert("Connect Wallet First!");
+        try {
+            const provider = new ethers.providers.Web3Provider(window.ethereum);
+            const signer = provider.getSigner();
+            const usdt = new ethers.Contract(WEB3_CONFIG.usdtAddress, ["function mint(address to, uint256 amount) public"], signer);
+            const tx = await usdt.mint(userAddress, ethers.utils.parseUnits("1000", 18));
+            alert("Minting 1000 USDT... Hash: " + tx.hash);
+            await tx.wait();
+            alert("Mint Success! Balance Updated.");
+        } catch (e) {
+            console.error(e);
+            alert("Mint Failed: " + e.message);
+        }
+    };
+
+    // Add Token Button
+    const addTokenBtn = document.createElement('button');
+    addTokenBtn.innerText = "🦊 Add NUERALLY to MetaMask";
+    Object.assign(addTokenBtn.style, {
+        padding: "10px 15px",
+        background: "#F6851B", // MetaMask Orange
+        color: "#fff",
+        border: "none",
+        borderRadius: "8px",
+        fontWeight: "bold",
+        cursor: "pointer"
+    });
+    addTokenBtn.onclick = async () => {
+        try {
+            await window.ethereum.request({
+                method: 'wallet_watchAsset',
+                params: {
+                    type: 'ERC20',
+                    options: {
+                        address: WEB3_CONFIG.tokenAddress,
+                        symbol: 'NUERALLY',
+                        decimals: 18,
+                    },
+                },
+            });
+        } catch (error) {
+            console.error("Failed to add token", error);
+        }
+    };
+
+    // Check Referrals Button
+    const refBtn = document.createElement('button');
+    refBtn.innerText = "💰 Check Referral Earnings";
+    Object.assign(refBtn.style, {
+        padding: "10px 15px",
+        background: "#2196F3", // Blue
+        color: "#fff",
+        border: "none",
+        borderRadius: "8px",
+        fontWeight: "bold",
+        cursor: "pointer"
+    });
+    refBtn.onclick = window.checkReferrals;
+
+    container.appendChild(mintBtn);
+    container.appendChild(addTokenBtn);
+    container.appendChild(refBtn);
+    document.body.appendChild(container);
+}
+
+// --- REFERRAL CHECK LOGIC ---
+window.checkReferrals = async function () {
+    console.log("checkReferrals started");
+    if (!window.ethereum) return alert("No Crypto Wallet Found!");
+    if (!userAddress) return alert("Connect Wallet First!");
+    console.log("Checking referrals for:", userAddress);
+
+    try {
+        console.log("Connecting to provider...");
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        const signer = provider.getSigner();
+        const contract = new ethers.Contract(WEB3_CONFIG.contractAddress, WEB3_CONFIG.abi, signer);
+
+        console.log("Fetching earnings for:", userAddress);
+        // Fetch Data
+        const earnings = await contract.referralEarnings(userAddress);
+        console.log("Raw Earnings:", earnings.toString());
+        const earningsFmt = ethers.utils.formatEther(earnings);
+
+        const enabled = await contract.claimingEnabled();
+        const launchTime = await contract.launchTime();
+
+        // Calculate Lock
+        const now = Math.floor(Date.now() / 1000);
+        const unlockTime = launchTime.add(30 * 24 * 60 * 60); // 30 days
+        const isLocked = now < unlockTime;
+
+        let msg = `📊 **Referral Status**\n\n`;
+        msg += `Earnings: ${earningsFmt} NUERALLY\n`;
+        msg += `Claiming Active: ${enabled ? "✅ Yes" : "❌ No"}\n`;
+
+        if (launchTime.gt(0)) {
+            msg += `Unlock Time: ${new Date(unlockTime * 1000).toLocaleString()}\n`;
+        }
+
+        if (parseFloat(earningsFmt) <= 0) {
+            alert(msg + "\nNo earnings to claim yet. Share your link!");
+            return;
+        }
+
+        if (!enabled) {
+            alert(msg + "\nWait for the Owner to enable claiming.");
+            return;
+        }
+
+        if (isLocked && launchTime.gt(0)) {
+            alert(msg + "\nRewards are locked for 30 days after launch.");
+            return;
+        }
+
+        // If we get here, they can claim!
+        if (confirm(`${msg}\n🎉 You can claim ${earningsFmt} NUERALLY!\n\nClick OK to Claim now.`)) {
+            try {
+                const tx = await contract.claimReferralRewards();
+                alert("Claiming... Hash: " + tx.hash);
+                await tx.wait();
+                alert("Success! Rewards claimed.");
+            } catch (err) {
+                console.error(err);
+                alert("Claim Failed: " + (err.reason || err.message));
+            }
+        }
+
+    } catch (e) {
+        console.error("Referral Check Failed", e);
+        alert("Error checking referrals: " + e.message);
+    }
+};
 
 // --- DEBUG LOGIC ---
 window.debugFindPurchase = async function () {

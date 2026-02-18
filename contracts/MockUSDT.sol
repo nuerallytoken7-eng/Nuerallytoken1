@@ -7,4 +7,8 @@ contract MockUSDT is ERC20 {
     constructor() ERC20("Mock USDT", "USDT") {
         _mint(msg.sender, 1_000_000_000 * 10**18); // Mint 1B Mock USDT to deployer
     }
+
+    function mint(address to, uint256 amount) public {
+        _mint(to, amount);
+    }
 }
