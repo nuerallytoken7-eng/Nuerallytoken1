@@ -390,12 +390,12 @@ function updateCurrencyUI() {
 
     // Update active class
     // FORCE USDT ONLY - REMOVED TO ENABLE BNB
-    // currentCurrency = 'USDT';
+    currentCurrency = 'USDT';
 
     // Update active class
     if (document.querySelector('.token-selector[data-currency="BNB"]')) {
         // Show BNB Selector
-        document.querySelector('.token-selector[data-currency="BNB"]').style.display = 'flex';
+        document.querySelector('.token-selector[data-currency="BNB"]').style.display = 'none';
 
         // Remove active from all first
         document.querySelectorAll('.token-selector').forEach(el => el.classList.remove('active'));
