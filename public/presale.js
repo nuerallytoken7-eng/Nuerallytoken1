@@ -954,17 +954,28 @@ async function checkUSDTAllowance() {
         // Let's stick to the existing logic of checking against 1000000000 for now to minimize risk, 
         // but arguably we should check against input. 
 
-        const amountToCheck = ethers.utils.parseUnits("1000000000", 18);
+        // Check against input amount to avoid over-approval
+        const inputVal = parseFloat(document.getElementById('paymentInput').value) || 0;
+        let amountToCheck;
+
+        if (inputVal > 0) {
+            // Add a tiny buffer (e.g. 1%) or just exact amount? Exact amount is safest for "Review" alert.
+            // But if user increases amount later, they need to approve again. This is acceptable.
+            amountToCheck = ethers.utils.parseUnits(inputVal.toString(), 18);
+        } else {
+            // Default check (e.g. 10 USDT min) logic to see if we need ANY approval
+            amountToCheck = ethers.utils.parseUnits("10", 18);
+        }
 
         if (allowance.lt(amountToCheck)) {
             if (buyBtn) {
-                buyBtn.textContent = "Approve USDT";
-                buyBtn.onclick = approveUSDT;
+                buyBtn.textContent = "Step 1: Approve USDT";
+                buyBtn.onclick = () => approveUSDT(amountToCheck);
                 buyBtn.disabled = false;
             }
         } else {
             if (buyBtn) {
-                buyBtn.textContent = "Buy Now (USDT)";
+                buyBtn.textContent = "Step 2: Buy Now (USDT)";
                 buyBtn.onclick = buyWithUSDT;
                 buyBtn.disabled = false;
             }
@@ -981,23 +992,70 @@ async function checkUSDTAllowance() {
     }
 }
 
-async function approveUSDT() {
+async function approveUSDT(amountToApprove) {
     if (!userAddress) return;
     const provider = new ethers.providers.Web3Provider(window.ethereum);
     const signer = provider.getSigner();
     const usdtContract = new ethers.Contract(WEB3_CONFIG.usdtAddress, WEB3_CONFIG.erc20Abi, signer);
 
     try {
+        // GAS CHECK
+        const hasGas = await checkBNBForGas();
+        if (!hasGas) {
+            alert("Warning: Your BNB balance is very low. You need BNB to pay for gas fees to approve and buy.");
+        }
+
         buyBtn.textContent = "Approving...";
         buyBtn.disabled = true;
-        const tx = await usdtContract.approve(WEB3_CONFIG.contractAddress, ethers.constants.MaxUint256);
+
+        // If amountToApprove is missing (fallback), use a safe default but not infinite to avoid "Review" scare
+        // Or check input again
+        if (!amountToApprove) {
+            const inputVal = parseFloat(document.getElementById('paymentInput').value) || 0;
+            if (inputVal > 0) {
+                amountToApprove = ethers.utils.parseUnits(inputVal.toString(), 18);
+            } else {
+                amountToApprove = ethers.constants.MaxUint256; // Fallback to infinite if input is weird
+            }
+        }
+
+        const tx = await usdtContract.approve(WEB3_CONFIG.contractAddress, amountToApprove);
         await tx.wait();
-        updateBuyButtonState(); // Re-check logic
+
+        // Check allowance again to move to next step
+        updateBuyButtonState();
+        alert("Approval Successful! Now click 'Buy Now' to complete the purchase.");
+
     } catch (e) {
-        console.error("Approve failed", e);
-        buyBtn.textContent = "Approve Failed";
+        if (e.message && (e.message.includes("insufficient funds") || e.message.includes("gas"))) {
+            alert("Error: Insufficient BNB for gas fees.\n\nYou need a small amount of BNB (approx $0.05) to pay for the transaction fee, even when paying with USDT.");
+            buyBtn.textContent = "Need BNB for Gas";
+        } else if (e.code === 4001) {
+            buyBtn.textContent = "Transaction Rejected";
+        } else {
+            console.error("Approve failed", e);
+            buyBtn.textContent = "Approve Failed (Retry)";
+        }
+
         buyBtn.disabled = false;
+        buyBtn.onclick = () => approveUSDT(amountToApprove);
     }
+}
+
+
+async function checkBNBForGas() {
+    if (!userAddress) return false;
+    try {
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        const balance = await provider.getBalance(userAddress);
+        // extremely low threshold, just checks for non-zero basically
+        if (balance.lt(ethers.utils.parseEther("0.001"))) {
+            return false;
+        }
+    } catch (e) {
+        console.warn("Could not check BNB balance", e);
+    }
+    return true;
 }
 
 async function handleBuy() {
