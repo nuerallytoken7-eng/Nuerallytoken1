@@ -1490,3 +1490,9 @@ window.debugFindPurchase = async function () {
         }
     }
 }
+
+// Initialize on Load
+document.addEventListener('DOMContentLoaded', () => {
+    console.log("DOM Ready - Firing initPresale");
+    if (typeof initPresale === 'function') initPresale();
+});

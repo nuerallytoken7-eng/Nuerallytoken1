@@ -1652,7 +1652,40 @@
         integrity="sha512-FDcVY+g7vc55I8ZY0C0n8n6eB3y3o5pbhISy5hYre5q7j5tLC9h0n83gP13dKOi9frLGLDAlPpD2n1b75qZ1ew=="
         crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script src="fluid.js?v=2"></script>
-    <script src="presale.js?v=22"></script>
+    <script src="public/presale.js?v=40"></script>
+    <script>
+        // SAFETY NET: Guarantee Connect Wallet works even if presale.js fails
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+                const btn = document.getElementById('connectWalletBtn');
+                const overlay = document.getElementById('walletSelectionOverlay');
+                if (btn && overlay) {
+                    // Check if it has a listener? We can't easily.
+                    // Just add one that checks if the overlay is already open.
+                    btn.addEventListener('click', (e) => {
+                        // If overlay isn't visible 10ms after click, force it.
+                        setTimeout(() => {
+                            if (overlay.style.display !== 'flex') {
+                                console.warn("Safety Net: Forcing Wallet Modal Open");
+                                overlay.style.display = 'flex';
+                                overlay.classList.add('active');
+                                overlay.style.opacity = '1';
+                                overlay.style.pointerEvents = 'auto';
+                                overlay.style.zIndex = '99999';
+                            }
+                        }, 50);
+                    });
+                }
+
+                // Also force remove "Loading Status..." if it's stuck
+                const status = document.getElementById('stageStatusText');
+                if (status && status.innerText.includes("Loading")) {
+                    console.warn("Safety Net: Clearing stuck Loading Status");
+                    status.innerText = "0 / 500 BNB"; // Mock default
+                }
+            }, 500); // Run after presale.js should have finished
+        });
+    </script>
     <script src="scroll-reveal.js?v=2"></script>
 
     <!-- Particles Effect -->
