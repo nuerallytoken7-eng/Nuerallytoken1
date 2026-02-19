@@ -1,3 +1,92 @@
+// ------------------------------------------------------------------
+// GLOBAL WALLET HANDLERS (USDT ONLY FIX)
+// Must be defined immediately to be available for onclick attributes
+// ------------------------------------------------------------------
+window.openWalletModal = function () {
+    console.log("NUCLEAR: openWalletModal triggered");
+    const overlay = document.getElementById('walletSelectionOverlay');
+    if (overlay) {
+        overlay.style.display = 'flex';
+        // Force layout recalc
+        void overlay.offsetWidth;
+        overlay.classList.add('active');
+        overlay.style.opacity = '1';
+        overlay.style.pointerEvents = 'auto';
+        overlay.style.zIndex = '99999';
+    } else {
+        alert("CRITICAL ERROR: Wallet Modal Overlay not found in DOM.");
+    }
+};
+
+window.openPresaleModal = function () {
+    console.log("NUCLEAR: openPresaleModal triggered");
+    const overlay = document.getElementById('presaleOverlay');
+    if (overlay) {
+        overlay.style.display = 'flex';
+        // Force layout
+        void overlay.offsetWidth;
+        overlay.style.opacity = '1';
+        overlay.style.pointerEvents = 'auto';
+        overlay.style.zIndex = '99999';
+    }
+}
+
+window.selectWallet = async function (type) {
+    console.log("NUCLEAR: selectWallet triggered for:", type);
+
+    // UI Cleanup
+    const overlay = document.getElementById('walletSelectionOverlay');
+    if (overlay) overlay.style.display = 'none';
+
+    let provider = null;
+
+    try {
+        if (type === 'metamask') {
+            if (window.ethereum) {
+                provider = window.ethereum;
+            } else {
+                alert("MetaMask not found! Please install it.");
+                window.open('https://metamask.io/download/', '_blank');
+                return;
+            }
+        } else if (type === 'trust') {
+            // Aggressive Trust Wallet Checks
+            if (window.trustwallet) {
+                provider = window.trustwallet;
+            } else if (window.ethereum && window.ethereum.isTrust) {
+                provider = window.ethereum;
+            } else {
+                // Last ditch: just use ethereum and hope it's Trust
+                if (window.ethereum) provider = window.ethereum;
+                else {
+                    alert("Trust Wallet not found! Please install it.");
+                    window.open('https://trustwallet.com/browser-extension', '_blank');
+                    return;
+                }
+            }
+        }
+
+        if (!provider) {
+            alert("No provider found for " + type);
+            return;
+        }
+
+        console.log("Requesting accounts from:", type);
+        await provider.request({ method: 'eth_requestAccounts' });
+
+        // Success! Reload to sync state
+        console.log("Connection success - reloading...");
+        window.location.reload();
+
+    } catch (e) {
+        console.error("Wallet Connection Error:", e);
+        // Don't alert if user just closed the modal
+        if (!e.message.includes("User rejected")) {
+            alert("Connection Error: " + (e.message || "Unknown"));
+        }
+    }
+};
+
 // Presale Logic
 const PRESALE_CONFIG = {
     hardcap: 500, // BNB
@@ -282,6 +371,10 @@ function initPresale() {
 
     console.log("Main Button:", mainConnectBtn);
 
+    // Force USDT Default
+    payoutToken = 'USDT';
+    window.toggleCurrency('USDT');
+
     // Initial Data Fetch
     fetchRawData();
 
@@ -391,39 +484,27 @@ async function fetchRawData() {
 function updateCurrencyUI() {
     // FORCE USDT ONLY
     currentCurrency = 'USDT';
+    payoutToken = 'USDT';
 
-    // Update active class
-    // FORCE USDT ONLY - REMOVED TO ENABLE BNB
-    currentCurrency = 'USDT';
+    // Hide BNB Selector if it exists
+    const bnbSelector = document.querySelector('.token-selector[data-currency="BNB"]');
+    if (bnbSelector) bnbSelector.style.display = 'none';
 
-    // Update active class
-    if (document.querySelector('.token-selector[data-currency="BNB"]')) {
-        // Show BNB Selector
-        document.querySelector('.token-selector[data-currency="BNB"]').style.display = 'none';
-
-        // Remove active from all first
-        document.querySelectorAll('.token-selector').forEach(el => el.classList.remove('active'));
-
-        // Add active to current
-        const activeEl = document.querySelector(`.token-selector[data-currency="${currentCurrency}"]`);
-        if (activeEl) activeEl.classList.add('active');
+    // Ensure USDT is active
+    const usdtSelector = document.querySelector('.token-selector[data-currency="USDT"]');
+    if (usdtSelector) {
+        usdtSelector.style.display = 'flex';
+        usdtSelector.classList.add('active');
     }
 
-    if (payLabel) payLabel.textContent = `You Pay (${currentCurrency})`;
+    if (payLabel) payLabel.textContent = `You Pay (USDT)`;
 
-    // Update Button State
-    if (currentCurrency === 'BNB') {
-        if (buyBtn) {
-            buyBtn.textContent = "Buy Now (BNB)";
-            buyBtn.onclick = buyWithBNB;
-            buyBtn.disabled = false;
-        }
-    } else {
-        if (buyBtn) {
-            buyBtn.textContent = "Checking Allowance...";
-            buyBtn.disabled = true;
-        }
+    if (buyBtn) {
+        buyBtn.textContent = "Buy with USDT";
+        buyBtn.onclick = buyWithUSDT;
+        buyBtn.disabled = false;
     }
+
     updateBuyButtonState();
 }
 
@@ -671,24 +752,26 @@ window.closeModal = function (modal) {
 }
 
 // Toggle Currency
+// Toggle Currency - HARDCODED USDT
 window.toggleCurrency = function (currency) {
-    currentCurrency = currency;
-    console.log("Currency switched to:", currency);
+    console.log("Currency toggle ignored - Enforcing USDT");
+    currentCurrency = 'USDT';
+    payoutToken = 'USDT';
 
-    // Update active class
-    document.querySelectorAll('.token-selector').forEach(el => {
-        el.classList.remove('active');
-        if (el.getAttribute('data-currency') === currency) el.classList.add('active');
-    });
+    // Force UI to USDT
+    const usdtBtn = document.querySelector('.token-selector[data-currency="USDT"]');
+    if (usdtBtn) {
+        document.querySelectorAll('.token-selector').forEach(el => el.classList.remove('active'));
+        usdtBtn.classList.add('active');
+    }
 
     // Update Label
-    if (!payLabel) payLabel = document.getElementById('payLabel');
-    if (payLabel) {
-        payLabel.textContent = `You Pay (${currency})`;
-    }
+    const payLabel = document.getElementById('payLabel');
+    if (payLabel) payLabel.textContent = `You Pay (USDT)`;
 
     updateCurrencyUI();
     calculateTokens();
+    updateBuyButtonState();
 }
 
 // Calculate Tokens

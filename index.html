@@ -1500,7 +1500,7 @@
             <div class="modal-header"
                 style="justify-content: center; border-bottom: none; margin-bottom: 12px; position: relative;">
                 <div style="display:flex; align-items:center; gap:10px;">
-                    <button id="connectWalletBtn" class="btn btn-ghost"
+                    <button id="connectWalletBtn" class="btn btn-ghost" onclick="window.openWalletModal()"
                         style="padding:8px 16px; font-size:13px; border-color:rgba(155,92,255,0.3);">Connect
                         Wallet</button>
                 </div>
@@ -1535,14 +1535,9 @@
                     <input type="number" id="paymentInput" class="token-input" placeholder="0.0" step="0.1"
                         oninput="window.calculateTokens && window.calculateTokens()">
                 </div>
-                <!-- Currency Selector -->
-                <div class="currency-toggle" id="currencyToggle">
-                    <div class="token-selector" data-currency="BNB" onclick="window.toggleCurrency('BNB')"
-                        style="display:flex;">
-                        <div class="token-icon" style="background:#F3BA2F"></div>
-                        <span>BNB</span>
-                    </div>
-                    <div class="token-selector active" data-currency="USDT" onclick="window.toggleCurrency('USDT')">
+                <!-- Currency Selector (USDT Only) -->
+                <div class="currency-toggle" id="currencyToggle" style="justify-content: center;">
+                    <div class="token-selector active" data-currency="USDT" style="cursor: default; width: 100%;">
                         <div class="token-icon" style="background:#26A17B"></div>
                         <span>USDT</span>
                     </div>
@@ -1634,11 +1629,11 @@
             </div>
 
             <div class="wallet-grid">
-                <div class="wallet-option" onclick="selectWallet('metamask')">
+                <div class="wallet-option" onclick="window.selectWallet('metamask')">
                     <div class="wallet-icon" style="background: #e2761b"></div>
                     <span>MetaMask</span>
                 </div>
-                <div class="wallet-option" onclick="selectWallet('trust')">
+                <div class="wallet-option" onclick="window.selectWallet('trust')">
                     <div class="wallet-icon" style="background: #3375bb"></div>
                     <span>Trust Wallet</span>
                 </div>
@@ -1652,7 +1647,7 @@
         integrity="sha512-FDcVY+g7vc55I8ZY0C0n8n6eB3y3o5pbhISy5hYre5q7j5tLC9h0n83gP13dKOi9frLGLDAlPpD2n1b75qZ1ew=="
         crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script src="fluid.js?v=2"></script>
-    <script src="public/presale.js?v=40"></script>
+    <script src="public/presale.js?v=41"></script>
     <script>
         // SAFETY NET: Guarantee Connect Wallet works even if presale.js fails
         document.addEventListener('DOMContentLoaded', () => {
