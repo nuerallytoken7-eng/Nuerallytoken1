@@ -1,29 +1,40 @@
-
 const hre = require("hardhat");
 
 async function main() {
-    const NEW_PRESALE = "0xD3D92Ce27F4845DA867c55da11b350D134fd09B1";
-    console.log("Checking Presale State:", NEW_PRESALE);
+    console.log("Checking Presale State on Mainnet...");
 
-    const Presale = await hre.ethers.getContractFactory("NuerallyPresale");
-    const presale = Presale.attach(NEW_PRESALE);
+    const PRESALE = "0xD3D92Ce27F4845DA867c55da11b350D134fd09B1";
+    const rpcUrl = "https://bsc.publicnode.com";
+    const provider = new hre.ethers.providers.JsonRpcProvider(rpcUrl);
 
-    // 1. Check Totals
-    const raisedUSDT = await presale.totalRaisedUSDT();
-    const tokensSold = await presale.totalTokensSold();
+    const abi = [
+        "function claimingEnabled() view returns (bool)",
+        "function totalRaisedUSDT() view returns (uint256)",
+        "function currentStage() view returns (uint256)",
+        "function usdt() view returns (address)"
+    ];
 
-    console.log(`\n--- Contract State ---`);
-    console.log(`Total Raised USDT: ${hre.ethers.utils.formatUnits(raisedUSDT, 18)}`); // USDT is 18 decimals in this contract config? Wait, assume standard.
-    // NOTE: If USDT is 18 decimals in contract config, we use formatUnits(x, 18).
-    // The contract converts to 1e18 for calculations.
+    const contract = new hre.ethers.Contract(PRESALE, abi, provider);
 
-    console.log(`Total Tokens Sold: ${hre.ethers.utils.formatEther(tokensSold)}`);
+    try {
+        const claiming = await contract.claimingEnabled();
+        const raised = await contract.totalRaisedUSDT();
+        const stage = await contract.currentStage();
 
-    // Interpretation
-    if (raisedUSDT.gt(0)) {
-        console.log("✅ Valid Purchase Detected!");
-    } else {
-        console.log("⚠️ No registered purchases (USDT likely sent directly).");
+        console.log(`\n--- Contract Status ---`);
+        console.log(`Address: ${PRESALE}`);
+        console.log(`Claiming Enabled: ${claiming}`);
+        console.log(`Total Raised USDT: ${hre.ethers.utils.formatEther(raised)}`);
+        console.log(`Current Stage: ${stage.toString()}`);
+
+        if (claiming) {
+            console.log("✅ Claiming IS enabled. Users should be able to claim.");
+        } else {
+            console.log("⚠️ Claiming is DISABLED. Users cannot claim yet.");
+        }
+
+    } catch (e) {
+        console.error("Error reading contract:", e.message);
     }
 }
 

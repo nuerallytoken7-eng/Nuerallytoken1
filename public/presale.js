@@ -43,7 +43,11 @@ const CONFIG = {
         tokenAddress: "0x7dC1787D85b871c76E446690b9acba3Baa45638A",
         chainId: 97,
         chainHex: "0x61",
-        rpcUrls: ["https://data-seed-prebsc-1-s1.binance.org:8545/"],
+        rpcUrls: [
+            "https://data-seed-prebsc-1-s1.binance.org:8545/",
+            "https://data-seed-prebsc-2-s1.binance.org:8545/",
+            "https://bsc-testnet.publicnode.com"
+        ],
         blockExplorer: "https://testnet.bscscan.com"
     },
     LOCAL: {
@@ -1157,6 +1161,12 @@ window.claimTokens = async function () {
         await tx.wait();
 
         alert("Tokens Claimed Successfully! Check your wallet.");
+
+        // Auto-prompt to add token
+        try {
+            await addTokenToWallet();
+        } catch (ignore) { }
+
         updateClaimUI(); // Refresh
 
     } catch (e) {
